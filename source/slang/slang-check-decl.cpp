@@ -45,6 +45,23 @@ struct SemanticsDeclModifiersVisitor : public SemanticsDeclVisitorBase,
     void visitStructDecl(StructDecl* structDecl);
 };
 
+/// Visitor to enforce structural rules about where declarations are placed in the source code.
+/// For example, function declarations should only be placed in the global/namespace scope and
+/// inside aggregate types.
+struct SemanticsDeclPlacementVisitor : public SemanticsDeclVisitorBase,
+                                       public DeclVisitor<SemanticsDeclPlacementVisitor>
+{
+    SemanticsDeclPlacementVisitor(SemanticsContext const& outer)
+        : SemanticsDeclVisitorBase(outer)
+    {
+    }
+
+    void visitDecl(Decl*) {}
+    void visitDeclGroup(DeclGroup*) {}
+
+    void visitFuncDecl(FuncDecl* funcDecl);
+};
+
 struct SemanticsDeclScopeWiringVisitor : public SemanticsDeclVisitorBase,
                                          public DeclVisitor<SemanticsDeclScopeWiringVisitor>
 {
@@ -1448,6 +1465,23 @@ void SemanticsDeclModifiersVisitor::visitStructDecl(StructDecl* structDecl)
         structDecl->invalidateMemberDictionary();
     }
     structDecl->buildMemberDictionary();
+}
+
+static bool _isParentAggregateDecl(const Decl* decl)
+{
+    if (!decl)
+        return false;
+    auto parentDecl = decl->parentDecl;
+    if (auto genericDecl = as<GenericDecl>(parentDecl))
+        parentDecl = genericDecl->parentDecl;
+    return as<AggTypeDeclBase()>(parentDecl) != nullptr;
+}
+
+void SemanticsDeclPlacementVisitor::visitFuncDecl(FuncDecl* funcDecl)
+{
+    if (!isGlobalDecl(funcDecl) && !_isParentAggregateDecl(funcDecl))
+    {
+    }
 }
 
 void SemanticsDeclHeaderVisitor::checkDerivativeMemberAttributeParent(
@@ -10733,6 +10767,7 @@ static void _dispatchDeclCheckingVisitor(Decl* decl, DeclCheckState state, Seman
     {
     case DeclCheckState::ModifiersChecked:
         SemanticsDeclModifiersVisitor(shared).dispatch(decl);
+        SemanticsDeclPlacementVisitor(shared).dispatch(decl);
         break;
     case DeclCheckState::ScopesWired:
         SemanticsDeclScopeWiringVisitor(shared).dispatch(decl);
