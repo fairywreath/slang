@@ -4589,7 +4589,12 @@ static void addSpecialGLSLModifiersBasedOnType(Parser* parser, Decl* decl, Modif
         {
             if (!modifiers->findModifier<GLSLOffsetLayoutAttribute>())
             {
+                printf("FW: add special glsl modifiers based on type\n");
+
                 const int64_t nextOffset = parser->getNextBindingOffset(bindingMod->binding);
+
+                printf("FW: special get next binding offset is %d\n", nextOffset);
+
                 GLSLOffsetLayoutAttribute* modifier =
                     parser->astBuilder->create<GLSLOffsetLayoutAttribute>();
                 modifier->keywordName = NULL;    // no keyword name given
@@ -8430,21 +8435,41 @@ static NodeBase* parseLayoutModifier(Parser* parser, void* /*userData*/)
 
             // If the token asked for is not returned found will put in recovering state, and return
             // token found
-            Token valToken = parser->ReadToken(TokenType::IntegerLiteral);
-            // If wasn't the desired IntegerLiteral return that couldn't parse
-            if (valToken.type == TokenType::IntegerLiteral)
-            {
-                // Work out the value
-                auto value = getIntegerLiteralValue(valToken);
+            // Token valToken = parser->ReadToken(TokenType::IntegerLiteral);
+            // // If wasn't the desired IntegerLiteral return that couldn't parse
+            // if (valToken.type == TokenType::IntegerLiteral)
+            // {
+            //     // Work out the value
+            //     auto value = getIntegerLiteralValue(valToken);
+            //
+            //     printf("FW: set initial glsl layout attribute\n");
+            //
+            //     if (nameText == "binding")
+            //     {
+            //         attr->binding = int32_t(value);
+            //     }
+            //     else
+            //     {
+            //         attr->set = int32_t(value);
+            //     }
+            // }
 
+            Expr* valExpr = parser->ParseArgExpr();
+            if (valExpr != nullptr)
+            {
+                printf("FWAA: parse expr type %s\n", valExpr->getClassInfo().m_name);
                 if (nameText == "binding")
                 {
-                    attr->binding = int32_t(value);
+                    attr->bindingExpr = valExpr;
                 }
                 else
                 {
-                    attr->set = int32_t(value);
+                    attr->setExpr = valExpr;
                 }
+            }
+            else
+            {
+                // XXX TODO: error
             }
         }
         else if (findImageFormatByName(nameText.getUnownedSlice(), &format))
@@ -8479,6 +8504,8 @@ static NodeBase* parseLayoutModifier(Parser* parser, void* /*userData*/)
 #undef CASE
 
             modifier->keywordName = nameAndLoc.name;
+            printf("FW: setting keyword name to %s\n", &nameAndLoc.name);
+
             modifier->loc = nameAndLoc.loc;
 
 
@@ -8495,11 +8522,18 @@ static NodeBase* parseLayoutModifier(Parser* parser, void* /*userData*/)
             {
                 if (auto binding = listBuilder.find<GLSLBindingAttribute>())
                 {
+                    printf("FW: set glsl offset layout attribute!\n");
+
                     // all GLSLOffsetLayoutAttribute have an OpAssign with value token
                     parser->ReadToken(TokenType::OpAssign);
                     glslOffset->offset = int64_t(
                         getIntegerLiteralValue(parser->ReadToken(TokenType::IntegerLiteral)));
+
                     parser->setBindingOffset(binding->binding, glslOffset->offset);
+                    printf(
+                        "FW: set glsl offset layout binding offset to %d %d\n",
+                        binding->binding,
+                        glslOffset->offset);
                 }
                 else
                 {

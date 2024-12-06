@@ -1,5 +1,6 @@
 // slang-check-modifier.cpp
 #include "../core/slang-char-util.h"
+#include "slang-ast-modifier.h"
 #include "slang-check-impl.h"
 
 // This file implements semantic checking behavior for
@@ -32,8 +33,12 @@ ConstantIntVal* SemanticsVisitor::checkConstantIntVal(Expr* expr)
         IntegerConstantExpressionCoercionType::AnyInteger,
         nullptr,
         ConstantFoldingKind::CompileTime);
+
     if (!intVal)
+    {
+        printf("FWAA: failed check onstant integer expression\n");
         return nullptr;
+    }
 
     auto constIntVal = as<ConstantIntVal>(intVal);
     if (!constIntVal)
@@ -345,6 +350,8 @@ Modifier* SemanticsVisitor::validateAttribute(
     AttributeDecl* attribClassDecl,
     ModifiableSyntaxNode* attrTarget)
 {
+    // printf("FW: validate attribute type: %s\n", attr->getClassInfo().m_name);
+
     if (auto numThreadsAttr = as<NumThreadsAttribute>(attr))
     {
         SLANG_ASSERT(attr->args.getCount() == 3);
@@ -533,7 +540,11 @@ Modifier* SemanticsVisitor::validateAttribute(
             return nullptr;
         }
 
+        printf("FW: setting final attributes?\n");
+
+        // XXX: Debug binding locations.
         bindingAttr->binding = int32_t(binding->getValue());
+        // bindingAttr->binding = 0;
         bindingAttr->set = int32_t(set->getValue());
     }
     else if (auto simpleLayoutAttr = as<GLSLSimpleIntegerLayoutAttribute>(attr))
@@ -1434,6 +1445,70 @@ bool isModifierAllowedOnDecl(bool isGLSLInput, ASTNodeType modifierType, Decl* d
     }
 }
 
+Modifier* SemanticsVisitor::checkGLSLBindingAttributes(Modifier* m)
+{
+    if (auto bindingAttribute = as<GLSLBindingAttribute>(m))
+    {
+        if (bindingAttribute->bindingExpr)
+        {
+            printf(
+                "FWAA: binding expr type is %s\n",
+                bindingAttribute->bindingExpr->getClassInfo().m_name);
+        }
+        else
+        {
+            printf("FWAA: binding attribute is null!\n");
+        }
+
+        // XXX: Debug binding locations.
+        if (bindingAttribute->bindingExpr != nullptr)
+        {
+            // auto binding = checkConstantIntVal(bindingAttribute->bindingExpr);
+            // auto binding = CheckIntegerConstantExpression(
+            //     bindingAttribute->bindingExpr,
+            //     IntegerConstantExpressionCoercionType::AnyInteger,
+            //     nullptr,
+            //     ConstantFoldingKind::CompileTime);
+
+            // auto binding = checkLinkTimeConstantIntVal(bindingAttribute->bindingExpr);
+
+            auto expr = CheckExpr(bindingAttribute->bindingExpr);
+            printf("FWAA: binding checked expr type is %s\n", expr->getClassInfo().m_name);
+
+            auto binding = CheckIntegerConstantExpression(
+                expr,
+                IntegerConstantExpressionCoercionType::AnyInteger,
+                nullptr,
+                ConstantFoldingKind::CompileTime);
+
+            if (binding)
+            {
+                bindingAttribute->binding = int32_t(binding->getIntConstOperand(1));
+                printf("FWAA: binding is set to %d!\n", bindingAttribute->binding);
+            }
+            else
+            {
+                printf("FWAA: binding is null!\n");
+            }
+        }
+
+        if (bindingAttribute->setExpr != nullptr)
+        {
+            auto set = checkConstantIntVal(bindingAttribute->setExpr);
+            if (set)
+            {
+                bindingAttribute->set = int32_t(set->getValue());
+            }
+        }
+
+        return m;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
 Modifier* SemanticsVisitor::checkModifier(
     Modifier* m,
     ModifiableSyntaxNode* syntaxNode,
@@ -1457,6 +1532,10 @@ Modifier* SemanticsVisitor::checkModifier(
             return getASTBuilder()->create<TransparentModifier>();
         }
         return checkedAttr;
+    }
+
+    if (auto glslBindingAttribute = checkGLSLBindingAttributes(m))
+    {
     }
 
     if (auto decl = as<Decl>(syntaxNode))

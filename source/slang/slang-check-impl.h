@@ -1652,6 +1652,8 @@ public:
         ModifiableSyntaxNode* syntaxNode,
         bool ignoreUnallowedModifier);
 
+    Modifier* checkGLSLBindingAttributes(Modifier* m);
+
     void checkModifiers(ModifiableSyntaxNode* syntaxNode);
     void checkVisibility(Decl* decl);
 

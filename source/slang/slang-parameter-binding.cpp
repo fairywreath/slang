@@ -1127,6 +1127,8 @@ static void addExplicitParameterBindings_GLSL(
         // Try to find `binding` and `set`
         if (auto glslBindingAttr = varDecl.getDecl()->findModifier<GLSLBindingAttribute>())
         {
+            printf("FW: set glsl binding in explicit layout attrigute idk\n");
+
             info[kResInfo].resInfo = foundResInfo;
             info[kResInfo].semanticInfo.index = glslBindingAttr->binding;
             info[kResInfo].semanticInfo.space = glslBindingAttr->set;
@@ -1140,14 +1142,16 @@ static void addExplicitParameterBindings_GLSL(
         // Try to find `set`
         if (auto attr = varDecl.getDecl()->findModifier<GLSLBindingAttribute>())
         {
+            printf("FW: whole space parameter requires zero check\n");
             info[kResInfo].resInfo = foundResInfo;
             if (attr->binding != 0)
             {
-                getSink(context)->diagnose(
-                    attr,
-                    Diagnostics::wholeSpaceParameterRequiresZeroBinding,
-                    varDecl.getName(),
-                    attr->binding);
+                // XXX: reenable this.
+                // getSink(context)->diagnose(
+                //     attr,
+                //     Diagnostics::wholeSpaceParameterRequiresZeroBinding,
+                //     varDecl.getName(),
+                //     attr->binding);
             }
             info[kResInfo].semanticInfo.index = attr->set;
             info[kResInfo].semanticInfo.space = 0;
@@ -4087,6 +4091,7 @@ RefPtr<ProgramLayout> generateParameterBindings(TargetProgram* targetProgram, Di
     // simplify this file by eliminating support for explicit
     // binding in the future)
     //
+
     for (auto& parameter : sharedContext.parameters)
     {
         _generateParameterBindings(&context, parameter);

@@ -833,7 +833,14 @@ class GLSLBindingAttribute : public Attribute
 {
     SLANG_AST_CLASS(GLSLBindingAttribute)
 
+    // Get location of all bindings usage
+    // Expr* binding = 0;
+
+    Expr* bindingExpr;
+    Expr* setExpr;
+
     int32_t binding = 0;
+
     int32_t set = 0;
 };
 
@@ -852,6 +859,8 @@ class GLSLOffsetLayoutAttribute : public Attribute
     SLANG_AST_CLASS(GLSLOffsetLayoutAttribute)
 
     int64_t offset;
+    //  XXX: Check offset locations.
+    // Expr* offset;
 };
 
 class GLSLSimpleIntegerLayoutAttribute : public Attribute
