@@ -1,5 +1,6 @@
 // slang-check-modifier.cpp
 #include "../core/slang-char-util.h"
+#include "core/slang-common.h"
 #include "slang-ast-modifier.h"
 #include "slang-check-impl.h"
 
@@ -519,7 +520,7 @@ Modifier* SemanticsVisitor::validateAttribute(
 
         inputAttachmentIndexLayoutAttribute->location = location->getValue();
     }
-    else if (auto bindingAttr = as<GLSLBindingAttribute>(attr))
+    else if (auto bindingAttr = as<VkBindingAttribute>(attr))
     {
         // This must be vk::binding or gl::binding (as specified in core.meta.slang under
         // vk_binding/gl_binding) Must have 2 int parameters. Ideally this would all be checked from
@@ -540,11 +541,7 @@ Modifier* SemanticsVisitor::validateAttribute(
             return nullptr;
         }
 
-        printf("FW: setting final attributes?\n");
-
-        // XXX: Debug binding locations.
         bindingAttr->binding = int32_t(binding->getValue());
-        // bindingAttr->binding = 0;
         bindingAttr->set = int32_t(set->getValue());
     }
     else if (auto simpleLayoutAttr = as<GLSLSimpleIntegerLayoutAttribute>(attr))
@@ -1445,68 +1442,86 @@ bool isModifierAllowedOnDecl(bool isGLSLInput, ASTNodeType modifierType, Decl* d
     }
 }
 
-Modifier* SemanticsVisitor::checkGLSLBindingAttributes(Modifier* m)
+void GLSLBindingOffsetTracker::setBindingOffset(int binding, int64_t byteOffset)
 {
-    if (auto bindingAttribute = as<GLSLBindingAttribute>(m))
+    bindingToByteOffset.set(binding, byteOffset);
+}
+
+int64_t GLSLBindingOffsetTracker::getNextBindingOffset(int binding)
+{
+    int64_t currentOffset;
+    if (bindingToByteOffset.addIfNotExists(binding, 0))
+        currentOffset = 0;
+    else
+        currentOffset = bindingToByteOffset.getValue(binding) + sizeof(uint32_t);
+
+    bindingToByteOffset.set(binding, currentOffset + sizeof(uint32_t));
+    return currentOffset;
+}
+
+AttributeBase* SemanticsVisitor::checkGLSLLayoutAttribute(
+    UncheckedGLSLLayoutAttribute* uncheckedAttr)
+{
+    AttributeBase* attr = nullptr;
+
+    SLANG_ASSERT(uncheckedAttr->args.getCount() == 1);
+
+    const auto constVal = checkConstantIntVal(uncheckedAttr->args[0]);
+    if (!constVal)
     {
-        if (bindingAttribute->bindingExpr)
-        {
-            printf(
-                "FWAA: binding expr type is %s\n",
-                bindingAttribute->bindingExpr->getClassInfo().m_name);
-        }
-        else
-        {
-            printf("FWAA: binding attribute is null!\n");
-        }
+        // XXX TODO: proper diagnostic error.
+        return attr;
+    }
 
-        // XXX: Debug binding locations.
-        if (bindingAttribute->bindingExpr != nullptr)
-        {
-            // auto binding = checkConstantIntVal(bindingAttribute->bindingExpr);
-            // auto binding = CheckIntegerConstantExpression(
-            //     bindingAttribute->bindingExpr,
-            //     IntegerConstantExpressionCoercionType::AnyInteger,
-            //     nullptr,
-            //     ConstantFoldingKind::CompileTime);
+    const auto value = constVal->getValue();
 
-            // auto binding = checkLinkTimeConstantIntVal(bindingAttribute->bindingExpr);
+    const auto& name = uncheckedAttr->getKeywordName()->text;
+    if (name == "binding")
+    {
+        auto bindingAttr = m_astBuilder->create<GLSLBindingLayoutAttribute>();
+        bindingAttr->binding = int32_t(value);
 
-            auto expr = CheckExpr(bindingAttribute->bindingExpr);
-            printf("FWAA: binding checked expr type is %s\n", expr->getClassInfo().m_name);
+        printf("FWBB: setting binding in check modifiers!\n");
 
-            auto binding = CheckIntegerConstantExpression(
-                expr,
-                IntegerConstantExpressionCoercionType::AnyInteger,
-                nullptr,
-                ConstantFoldingKind::CompileTime);
+        attr = bindingAttr;
+    }
+    else if (name == "set")
+    {
+        auto setAttr = m_astBuilder->create<GLSLSetLayoutAttribute>();
+        setAttr->set = int32_t(value);
 
-            if (binding)
-            {
-                bindingAttribute->binding = int32_t(binding->getIntConstOperand(1));
-                printf("FWAA: binding is set to %d!\n", bindingAttribute->binding);
-            }
-            else
-            {
-                printf("FWAA: binding is null!\n");
-            }
-        }
+        attr = setAttr;
+    }
+    else if (name == "offset")
+    {
+        auto offsetAttr = m_astBuilder->create<GLSLOffsetLayoutAttribute>();
 
-        if (bindingAttribute->setExpr != nullptr)
-        {
-            auto set = checkConstantIntVal(bindingAttribute->setExpr);
-            if (set)
-            {
-                bindingAttribute->set = int32_t(set->getValue());
-            }
-        }
 
-        return m;
+        // Offset constant folding computation is deferred until all other modifiers are checked to
+        // ensure bindinig is checked first.
+        attr = offsetAttr;
     }
     else
     {
-        return nullptr;
+        // XXX TODO: Diagnose unknown qualifier name.
     }
+
+    if (attr)
+    {
+        attr->keywordName = uncheckedAttr->keywordName;
+        attr->originalIdentifierToken = uncheckedAttr->originalIdentifierToken;
+        attr->args = uncheckedAttr->args;
+        attr->loc = uncheckedAttr->loc;
+    }
+
+    return attr;
+}
+
+GLSLOffsetLayoutAttribute* SemanticsVisitor::checkGLSLOffsetAttribute(AttributeBase* attr)
+{
+    GLSLOffsetLayoutAttribute* offsetAttr = nullptr;
+
+    return offsetAttr;
 }
 
 Modifier* SemanticsVisitor::checkModifier(
@@ -1534,8 +1549,21 @@ Modifier* SemanticsVisitor::checkModifier(
         return checkedAttr;
     }
 
-    if (auto glslBindingAttribute = checkGLSLBindingAttributes(m))
+    if (auto glslLayoutAttribute = as<UncheckedGLSLLayoutAttribute>(m))
     {
+        return checkGLSLLayoutAttribute(glslLayoutAttribute);
+    }
+
+    if (auto glslImplicitOffsetAttribute = as<GLSLImplicitLayoutModifierAttribute>(m))
+    {
+        auto offsetAttr = m_astBuilder->create<GLSLOffsetLayoutAttribute>();
+        offsetAttr->loc = glslImplicitOffsetAttribute->loc;
+
+        printf("FWBB: chcked implicit offset attribute!\n");
+
+        // Offset constant folding computation is deferred until all other modifiers are checked to
+        // ensure bindinig is checked first.
+        return offsetAttr;
     }
 
     if (auto decl = as<Decl>(syntaxNode))
@@ -1911,6 +1939,10 @@ void postProcessingOnModifiers(Modifiers& modifiers)
 
 void SemanticsVisitor::checkModifiers(ModifiableSyntaxNode* syntaxNode)
 {
+
+    GLSLBindingLayoutAttribute* glslBindingAttribute = nullptr;
+    GLSLOffsetLayoutAttribute* glslOffsetAttribute = nullptr;
+
     // TODO(tfoley): need to make sure this only
     // performs semantic checks on a `SharedModifier` once...
 
@@ -1961,6 +1993,15 @@ void SemanticsVisitor::checkModifiers(ModifiableSyntaxNode* syntaxNode)
         // may return a list of modifiers
         auto checkedModifier = checkModifier(modifier, syntaxNode, ignoreUnallowedModifier);
 
+        if (!glslBindingAttribute)
+        {
+            glslBindingAttribute = as<GLSLBindingLayoutAttribute>(checkedModifier);
+        }
+        if (!glslOffsetAttribute)
+        {
+            glslOffsetAttribute = as<GLSLOffsetLayoutAttribute>(checkedModifier);
+        }
+
         if (checkedModifier)
         {
             // If checking gave us a modifier to add, then we
@@ -1980,6 +2021,42 @@ void SemanticsVisitor::checkModifiers(ModifiableSyntaxNode* syntaxNode)
 
         // Move along to the next modifier
         modifier = next;
+    }
+
+    if (glslOffsetAttribute)
+    {
+        if (glslBindingAttribute)
+        {
+            printf("FWBB: current visitor pointer: %x\n", this);
+            if (glslOffsetAttribute->args.getCount() == 0)
+            {
+                glslOffsetAttribute->offset = getGLSLBindingOffsetTracker()->getNextBindingOffset(
+                    glslBindingAttribute->binding);
+                printf(
+                    "FWBB: 2 set atomic counter binding %d to offset %d\n",
+                    glslBindingAttribute->binding,
+                    glslOffsetAttribute->offset);
+            }
+            else
+            {
+                const auto constVal = checkConstantIntVal(glslOffsetAttribute->args[0]);
+                SLANG_ASSERT(constVal != nullptr);
+
+                glslOffsetAttribute->offset = uint64_t(constVal->getValue());
+                getGLSLBindingOffsetTracker()->setBindingOffset(
+                    glslBindingAttribute->binding,
+                    glslOffsetAttribute->offset);
+
+                printf(
+                    "FWBB: set atomic counter binding %d to offset %d\n",
+                    glslBindingAttribute->binding,
+                    glslOffsetAttribute->offset);
+            }
+        }
+        else
+        {
+            // XXX TODO: error
+        }
     }
 
     // Whether we actually re-wrote anything or note, lets

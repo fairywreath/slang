@@ -3,6 +3,7 @@
 #pragma once
 
 #include "slang-ast-base.h"
+#include "slang-ast-reflect.h"
 
 namespace Slang
 {
@@ -693,6 +694,28 @@ class UncheckedAttribute : public AttributeBase
     Scope* scope = nullptr;
 };
 
+class UncheckedGLSLLayoutAttribute : public AttributeBase
+{
+    SLANG_AST_CLASS(UncheckedGLSLLayoutAttribute)
+
+    SLANG_UNREFLECTED
+};
+
+class UncheckedGLSLBindingLayoutAttribute : public UncheckedGLSLLayoutAttribute
+{
+    SLANG_AST_CLASS(UncheckedGLSLBindingLayoutAttribute)
+
+    SLANG_UNREFLECTED
+};
+
+class UncheckedGLSLOffsetLayoutAttribute : public UncheckedGLSLLayoutAttribute
+{
+    SLANG_AST_CLASS(UncheckedGLSLOffsetLayoutAttribute)
+
+    SLANG_UNREFLECTED
+};
+
+
 // A `[name(arg0, ...)]` style attribute that has been validated.
 class Attribute : public AttributeBase
 {
@@ -829,9 +852,9 @@ class ShaderRecordAttribute : public Attribute
 
 
 // [[vk_binding]]
-class GLSLBindingAttribute : public Attribute
+class VkBindingAttribute : public Attribute
 {
-    SLANG_AST_CLASS(GLSLBindingAttribute)
+    SLANG_AST_CLASS(VkBindingAttribute)
 
     // Get location of all bindings usage
     // Expr* binding = 0;
@@ -854,13 +877,32 @@ class VkRestrictPointerAttribute : public Attribute
     SLANG_AST_CLASS(VkRestrictPointerAttribute)
 };
 
+class GLSLBindingLayoutAttribute : public Attribute
+{
+    SLANG_AST_CLASS(GLSLBindingLayoutAttribute)
+
+    int32_t binding;
+};
+
+class GLSLSetLayoutAttribute : public Attribute
+{
+    SLANG_AST_CLASS(GLSLSetLayoutAttribute)
+
+    int32_t set;
+};
+
 class GLSLOffsetLayoutAttribute : public Attribute
 {
     SLANG_AST_CLASS(GLSLOffsetLayoutAttribute)
 
     int64_t offset;
-    //  XXX: Check offset locations.
-    // Expr* offset;
+};
+
+class GLSLImplicitLayoutModifierAttribute : public AttributeBase
+{
+    SLANG_AST_CLASS(GLSLImplicitLayoutModifierAttribute)
+
+    SLANG_UNREFLECTED
 };
 
 class GLSLSimpleIntegerLayoutAttribute : public Attribute

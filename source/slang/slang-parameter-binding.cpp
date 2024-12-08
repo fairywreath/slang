@@ -2,6 +2,7 @@
 #include "slang-parameter-binding.h"
 
 #include "../compiler-core/slang-artifact-desc-util.h"
+#include "slang-ast-modifier.h"
 #include "slang-compiler.h"
 #include "slang-ir-string-hash.h"
 #include "slang-ir-util.h"
@@ -1125,13 +1126,32 @@ static void addExplicitParameterBindings_GLSL(
     {
         foundResInfo = foundDescriptorTableSlot;
         // Try to find `binding` and `set`
-        if (auto glslBindingAttr = varDecl.getDecl()->findModifier<GLSLBindingAttribute>())
+        if (auto bindingAttr = varDecl.getDecl()->findModifier<VkBindingAttribute>())
         {
-            printf("FW: set glsl binding in explicit layout attrigute idk\n");
+            printf(
+                "FW: set glsl binding in explicit layout attribute to %d\n",
+                bindingAttr->binding);
 
             info[kResInfo].resInfo = foundResInfo;
-            info[kResInfo].semanticInfo.index = glslBindingAttr->binding;
-            info[kResInfo].semanticInfo.space = glslBindingAttr->set;
+            info[kResInfo].semanticInfo.index = bindingAttr->binding;
+            info[kResInfo].semanticInfo.space = bindingAttr->set;
+        }
+        else
+        {
+            info[kResInfo].semanticInfo.index = 0;
+            info[kResInfo].semanticInfo.space = 0;
+
+            if (auto bindingAttr = varDecl.getDecl()->findModifier<GLSLBindingLayoutAttribute>())
+            {
+                info[kResInfo].resInfo = foundResInfo;
+                info[kResInfo].semanticInfo.index = bindingAttr->binding;
+            }
+
+            if (auto setAttr = varDecl.getDecl()->findModifier<GLSLSetLayoutAttribute>())
+            {
+                info[kResInfo].resInfo = foundResInfo;
+                info[kResInfo].semanticInfo.space = setAttr->set;
+            }
         }
     }
     else if (
@@ -1140,7 +1160,7 @@ static void addExplicitParameterBindings_GLSL(
     {
         foundResInfo = foundSubElementRegisterSpace;
         // Try to find `set`
-        if (auto attr = varDecl.getDecl()->findModifier<GLSLBindingAttribute>())
+        if (auto attr = varDecl.getDecl()->findModifier<VkBindingAttribute>())
         {
             printf("FW: whole space parameter requires zero check\n");
             info[kResInfo].resInfo = foundResInfo;
@@ -4235,7 +4255,8 @@ RefPtr<ProgramLayout> generateParameterBindings(TargetProgram* targetProgram, Di
             if (varLayout->typeLayout->FindResourceInfo(LayoutResourceKind::Uniform))
             {
                 needDefaultConstantBuffer = true;
-                if (varLayout->varDecl.getDecl()->hasModifier<GLSLBindingAttribute>() ||
+                // XXX: Need to add individual binding and set mods here.
+                if (varLayout->varDecl.getDecl()->hasModifier<VkBindingAttribute>() ||
                     varLayout->varDecl.getDecl()->hasModifier<GLSLLocationLayoutModifier>())
                     sink->diagnose(
                         varLayout->varDecl,
@@ -4332,6 +4353,10 @@ RefPtr<ProgramLayout> generateParameterBindings(TargetProgram* targetProgram, Di
     {
         globalScopeLayoutBuilder.addParameter(parameterInfo);
     }
+
+    printf(
+        "FW: global scope layout builder parameter count: %d\n",
+        globalScopeLayoutBuilder.m_structLayout->fields.getCount());
 
     globalScopeVarLayout = globalScopeLayoutBuilder.endLayout(globalScopeVarLayout);
 

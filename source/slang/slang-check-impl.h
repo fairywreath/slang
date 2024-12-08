@@ -5,6 +5,7 @@
 // the various `slang-check-*` files that provide
 // the semantic checking infrastructure.
 
+#include "slang-ast-modifier.h"
 #include "slang-check.h"
 #include "slang-compiler.h"
 #include "slang-visitor.h"
@@ -614,6 +615,17 @@ struct ImplicitCastMethodKey
     }
 };
 
+/// Used to track offsets for atomic counter storage qualifiers.
+struct GLSLBindingOffsetTracker
+{
+public:
+    void setBindingOffset(int binding, int64_t byteOffset);
+    int64_t getNextBindingOffset(int binding);
+
+private:
+    Dictionary<int, int64_t> bindingToByteOffset;
+};
+
 /// Shared state for a semantics-checking session.
 struct SharedSemanticsContext : public RefObject
 {
@@ -644,6 +656,8 @@ struct SharedSemanticsContext : public RefObject
     //
     List<ModuleDecl*> importedModulesList;
     HashSet<ModuleDecl*> importedModulesSet;
+
+    GLSLBindingOffsetTracker m_glslBindingOffsetTracker;
 
 public:
     SharedSemanticsContext(
@@ -704,6 +718,8 @@ public:
         /// The rest of the links in the chain of declarations being processed
         InheritanceCircularityInfo* next = nullptr;
     };
+
+    GLSLBindingOffsetTracker* getGLSLBindingOffsetTracker() { return &m_glslBindingOffsetTracker; }
 
     /// Get the processed inheritance information for `type`, including all its facets
     InheritanceInfo getInheritanceInfo(
@@ -1054,6 +1070,11 @@ public:
     Decl* getDeclToExcludeFromLookup() { return m_declToExcludeFromLookup; }
 
     OrderedHashSet<Type*>* getCapturedTypePacks() { return m_capturedTypePacks; }
+
+    GLSLBindingOffsetTracker* getGLSLBindingOffsetTracker()
+    {
+        return m_shared->getGLSLBindingOffsetTracker();
+    }
 
 private:
     SharedSemanticsContext* m_shared = nullptr;
@@ -1647,12 +1668,13 @@ public:
         UncheckedAttribute* uncheckedAttr,
         ModifiableSyntaxNode* attrTarget);
 
+    AttributeBase* checkGLSLLayoutAttribute(UncheckedGLSLLayoutAttribute* uncheckedAttr);
+    GLSLOffsetLayoutAttribute* checkGLSLOffsetAttribute(AttributeBase* uncheckedAttr);
+
     Modifier* checkModifier(
         Modifier* m,
         ModifiableSyntaxNode* syntaxNode,
         bool ignoreUnallowedModifier);
-
-    Modifier* checkGLSLBindingAttributes(Modifier* m);
 
     void checkModifiers(ModifiableSyntaxNode* syntaxNode);
     void checkVisibility(Decl* decl);

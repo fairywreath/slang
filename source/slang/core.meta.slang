@@ -3411,13 +3411,13 @@ __postfix T operator --(__ref Atomic<T> v)
 /// @param binding The binding location.
 /// @param set The descriptor set index of the binding.
 __attributeTarget(DeclBase)
-attribute_syntax [vk_binding(binding: int, set: int = 0)]			: GLSLBindingAttribute;
+attribute_syntax [vk_binding(binding: int, set: int = 0)]			: VkBindingAttribute;
 
 /// Declare the Vulkan binding location of a global shader variable.
 /// @param binding The binding location.
 /// @param set The descriptor set index of the binding.
 __attributeTarget(DeclBase)
-attribute_syntax [gl_binding(binding: int, set: int = 0)]			: GLSLBindingAttribute;
+attribute_syntax [gl_binding(binding: int, set: int = 0)]			: VkBindingAttribute;
 
 
 /// Mark a global variable as a Vulkan shader record.
