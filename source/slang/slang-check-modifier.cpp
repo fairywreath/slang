@@ -1,5 +1,6 @@
-// slang-check-modifier.cpp
+// slang-check-modifier.cppcheck-m
 #include "../core/slang-char-util.h"
+#include "slang-ast-modifier.h"
 #include "slang-check-impl.h"
 
 // This file implements semantic checking behavior for
@@ -513,6 +514,17 @@ Modifier* SemanticsVisitor::validateAttribute(
 
         inputAttachmentIndexLayoutAttribute->location = location->getValue();
     }
+    else if (auto locationLayoutAttr = as<GLSLLocationAttribute>(attr))
+    {
+        if (attr->args.getCount() != 1)
+            return nullptr;
+
+        auto location = checkConstantIntVal(attr->args[0]);
+        if (!location)
+            return nullptr;
+
+        locationLayoutAttr->value = location->getValue();
+    }
     else if (auto bindingAttr = as<GLSLBindingAttribute>(attr))
     {
         // This must be vk::binding or gl::binding (as specified in core.meta.slang under
@@ -568,7 +580,11 @@ Modifier* SemanticsVisitor::validateAttribute(
             return nullptr;
         }
 
+
         simpleLayoutAttr->value = int32_t(value->getValue());
+
+
+        printf("FWAA: simple integer value is %d\n", simpleLayoutAttr->value);
     }
     else if (auto maxVertexCountAttr = as<MaxVertexCountAttribute>(attr))
     {
@@ -1245,9 +1261,9 @@ ASTNodeType getModifierConflictGroupKind(ASTNodeType modifierType)
         return ASTNodeType::OutModifier;
 
         // Modifiers that are their own exclusive group.
-    case ASTNodeType::GLSLLayoutModifier:
-    case ASTNodeType::GLSLParsedLayoutModifier:
-    case ASTNodeType::GLSLLocationLayoutModifier:
+    // case ASTNodeType::GLSLLayoutModifier:
+    // case ASTNodeType::GLSLParsedLayoutModifier:
+    // case ASTNodeType::GLSLLocationLayoutModifier:
     case ASTNodeType::GLSLInputAttachmentIndexLayoutAttribute:
     case ASTNodeType::GLSLOffsetLayoutAttribute:
     case ASTNodeType::GLSLUnparsedLayoutModifier:
@@ -1324,9 +1340,9 @@ bool isModifierAllowedOnDecl(bool isGLSLInput, ASTNodeType modifierType, Decl* d
     case ASTNodeType::InModifier:
     case ASTNodeType::InOutModifier:
     case ASTNodeType::OutModifier:
-    case ASTNodeType::GLSLLayoutModifier:
-    case ASTNodeType::GLSLParsedLayoutModifier:
-    case ASTNodeType::GLSLLocationLayoutModifier:
+    // case ASTNodeType::GLSLLayoutModifier:
+    // case ASTNodeType::GLSLParsedLayoutModifier:
+    // case ASTNodeType::GLSLLocationLayoutModifier:
     case ASTNodeType::GLSLInputAttachmentIndexLayoutAttribute:
     case ASTNodeType::GLSLOffsetLayoutAttribute:
     case ASTNodeType::GLSLUnparsedLayoutModifier:
@@ -1508,6 +1524,22 @@ AttributeBase* SemanticsVisitor::checkGLSLLayoutAttribute(
     else if (as<UncheckedGLSLOffsetLayoutAttribute>(uncheckedAttr))
     {
         attr = m_astBuilder->create<GLSLOffsetLayoutAttribute>();
+    }
+    else if (as<UncheckedGLSLInputAttachmentIndexLayoutAttribute>(uncheckedAttr))
+    {
+        attr = m_astBuilder->create<GLSLInputAttachmentIndexLayoutAttribute>();
+    }
+    else if (as<UncheckedGLSLLocationLayoutAttribute>(uncheckedAttr))
+    {
+        attr = m_astBuilder->create<GLSLLocationAttribute>();
+    }
+    else if (as<UncheckedGLSLIndexLayoutAttribute>(uncheckedAttr))
+    {
+        attr = m_astBuilder->create<GLSLIndexAttribute>();
+    }
+    else if (as<UncheckedGLSLConstantIdAttribute>(uncheckedAttr))
+    {
+        attr = m_astBuilder->create<VkConstantIdAttribute>();
     }
     else
     {

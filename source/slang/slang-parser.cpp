@@ -1,6 +1,7 @@
 #include "slang-parser.h"
 
 #include "../core/slang-semantic-version.h"
+#include "slang-ast-modifier.h"
 #include "slang-compiler.h"
 #include "slang-lookup-spirv.h"
 #include "slang-lookup.h"
@@ -1040,6 +1041,22 @@ static Modifier* parseUncheckedGLSLLayoutAttribute(Parser* parser, NameLoc& name
     else if (nameLoc.name->text == "set")
     {
         attr = parser->astBuilder->create<UncheckedGLSLSetLayoutAttribute>();
+    }
+    else if (nameLoc.name->text == "input_attachment_index")
+    {
+        attr = parser->astBuilder->create<UncheckedGLSLInputAttachmentIndexLayoutAttribute>();
+    }
+    else if (nameLoc.name->text == "location")
+    {
+        attr = parser->astBuilder->create<UncheckedGLSLLocationLayoutAttribute>();
+    }
+    else if (nameLoc.name->text == "index")
+    {
+        attr = parser->astBuilder->create<UncheckedGLSLIndexLayoutAttribute>();
+    }
+    else if (nameLoc.name->text == "constant_id")
+    {
+        attr = parser->astBuilder->create<UncheckedGLSLConstantIdAttribute>();
     }
     else
     {
@@ -8456,17 +8473,6 @@ static NodeBase* parseLayoutModifier(Parser* parser, void* /*userData*/)
             derivativeGroupLinearAttrib =
                 parser->astBuilder->create<GLSLLayoutDerivativeGroupLinearAttribute>();
         }
-        else if (nameText == "input_attachment_index")
-        {
-            inputAttachmentIndexLayoutAttribute =
-                parser->astBuilder->create<GLSLInputAttachmentIndexLayoutAttribute>();
-            if (AdvanceIf(parser, TokenType::OpAssign))
-            {
-                auto token = parser->ReadToken(TokenType::IntegerLiteral);
-                auto intVal = getIntegerLiteralValue(token);
-                inputAttachmentIndexLayoutAttribute->location = intVal;
-            }
-        }
         else if (findImageFormatByName(nameText.getUnownedSlice(), &format))
         {
             auto attr = parser->astBuilder->create<FormatAttribute>();
@@ -8486,11 +8492,17 @@ static NodeBase* parseLayoutModifier(Parser* parser, void* /*userData*/)
             CASE(push_constant, PushConstantAttribute)
             CASE(shaderRecordNV, ShaderRecordAttribute)
             CASE(shaderRecordEXT, ShaderRecordAttribute)
-            CASE(constant_id, VkConstantIdAttribute)
+            // CASE(constant_id, VkConstantIdAttribute)
             CASE(std140, GLSLStd140Modifier)
             CASE(std430, GLSLStd430Modifier)
             CASE(scalar, GLSLScalarModifier)
-            CASE(location, GLSLLocationLayoutModifier)
+            // CASE(location, GLSLLocationLayoutModifier)
+            // if (nameText == "location")
+            // {
+            //     modifier = parser->astBuilder->create<GLSLLocationLayoutModifier>();
+            //     printf("FW: parser crearing location layout modifier\n");
+            // }
+            // else
             {
                 modifier = parseUncheckedGLSLLayoutAttribute(parser, nameAndLoc);
             }
@@ -8502,18 +8514,18 @@ static NodeBase* parseLayoutModifier(Parser* parser, void* /*userData*/)
 
 
             // Special handling for GLSLLayoutModifier
-            if (auto glslModifier = as<GLSLLayoutModifier>(modifier))
-            {
-                // not all GLSLLayoutModifier subtypes have an OpAssign after
-                if (AdvanceIf(parser, TokenType::OpAssign))
-                    glslModifier->valToken = parser->ReadToken(TokenType::IntegerLiteral);
-            }
-            else if (auto specConstAttr = as<VkConstantIdAttribute>(modifier))
-            {
-                parser->ReadToken(TokenType::OpAssign);
-                specConstAttr->location =
-                    (int)getIntegerLiteralValue(parser->ReadToken(TokenType::IntegerLiteral));
-            }
+            // if (auto glslModifier = as<GLSLLayoutModifier>(modifier))
+            // {
+            //     // not all GLSLLayoutModifier subtypes have an OpAssign after
+            //     if (AdvanceIf(parser, TokenType::OpAssign))
+            //         glslModifier->valToken = parser->ReadToken(TokenType::IntegerLiteral);
+            // }
+            // if (auto specConstAttr = as<VkConstantIdAttribute>(modifier))
+            // {
+            //     parser->ReadToken(TokenType::OpAssign);
+            //     specConstAttr->location =
+            //         (int)getIntegerLiteralValue(parser->ReadToken(TokenType::IntegerLiteral));
+            // }
 
             if (as<GLSLUnparsedLayoutModifier>(modifier))
             {
@@ -8530,14 +8542,16 @@ static NodeBase* parseLayoutModifier(Parser* parser, void* /*userData*/)
         parser->ReadToken(TokenType::Comma);
     }
 
-#define CASE(key, type)                                                                    \
-    if (AdvanceIf(parser, #key))                                                           \
-    {                                                                                      \
-        auto modifier = parser->astBuilder->create<type>();                                \
-        modifier->location =                                                               \
-            int(getIntegerLiteralValue(listBuilder.find<GLSLLayoutModifier>()->valToken)); \
-        listBuilder.add(modifier);                                                         \
-    }                                                                                      \
+    // modifier->location =                                                               \
+        //     int(getIntegerLiteralValue(listBuilder.find<GLSLLayoutModifier>()->valToken)); \
+        // XXX TODO: properly fill location after checking.
+#define CASE(key, type)                                     \
+    if (AdvanceIf(parser, #key))                            \
+    {                                                       \
+        auto modifier = parser->astBuilder->create<type>(); \
+        modifier->location = 10;                            \
+        listBuilder.add(modifier);                          \
+    }                                                       \
     else
 
     CASE(rayPayloadEXT, VulkanRayPayloadAttribute)

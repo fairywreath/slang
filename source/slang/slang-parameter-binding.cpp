@@ -2,6 +2,7 @@
 #include "slang-parameter-binding.h"
 
 #include "../compiler-core/slang-artifact-desc-util.h"
+#include "slang-ast-modifier.h"
 #include "slang-compiler.h"
 #include "slang-ir-string-hash.h"
 #include "slang-ir-util.h"
@@ -4249,8 +4250,10 @@ RefPtr<ProgramLayout> generateParameterBindings(TargetProgram* targetProgram, Di
             if (varLayout->typeLayout->FindResourceInfo(LayoutResourceKind::Uniform))
             {
                 needDefaultConstantBuffer = true;
+                printf("FWAA: inside parameter binding!\n");
                 if (varLayout->varDecl.getDecl()->hasModifier<GLSLBindingAttribute>() ||
-                    varLayout->varDecl.getDecl()->hasModifier<GLSLLocationLayoutModifier>())
+                    // varLayout->varDecl.getDecl()->hasModifier<GLSLLocationLayoutModifier>())
+                    varLayout->varDecl.getDecl()->hasModifier<GLSLLocationAttribute>())
                     sink->diagnose(
                         varLayout->varDecl,
                         Diagnostics::explicitUniformLocation,

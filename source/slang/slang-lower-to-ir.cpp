@@ -5,6 +5,7 @@
 #include "../core/slang-hash.h"
 #include "../core/slang-performance-profiler.h"
 #include "../core/slang-random-generator.h"
+#include "slang-ast-modifier.h"
 #include "slang-check.h"
 #include "slang-ir-autodiff.h"
 #include "slang-ir-bit-field-accessors.h"
@@ -2290,14 +2291,13 @@ void addVarDecorations(IRGenContext* context, IRInst* inst, Decl* decl)
         {
             builder->addSimpleDecoration<IRGlobalInputDecoration>(inst);
         }
-        else if (auto glslLocationMod = as<GLSLLocationLayoutModifier>(mod))
+        else if (auto glslLocationMod = as<GLSLLocationAttribute>(mod))
         {
+            printf("FW: lower to ir get location!\n");
             builder->addDecoration(
                 inst,
                 kIROp_GLSLLocationDecoration,
-                builder->getIntValue(
-                    builder->getIntType(),
-                    stringToInt(glslLocationMod->valToken.getContent())));
+                builder->getIntValue(builder->getIntType(), glslLocationMod->value));
         }
         else if (auto glslOffsetMod = as<GLSLOffsetLayoutAttribute>(mod))
         {
