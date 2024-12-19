@@ -8665,6 +8665,20 @@ void SemanticsVisitor::checkForRedeclaration(Decl* decl)
         if (SLANG_FAILED(checkResult))
             break;
     }
+
+    Scope* coreScope = getSession()->coreLanguageScope;
+    if (coreScope && coreScope->containerDecl)
+    {
+        Decl* oldDecl = nullptr;
+        coreScope->containerDecl->getMemberDictionary().tryGetValue(newDecl->getName(), oldDecl);
+
+        for (; oldDecl; oldDecl = oldDecl->nextInContainerWithSameName)
+        {
+            Result checkResult = checkRedeclaration(newDecl, oldDecl);
+            if (SLANG_FAILED(checkResult))
+                break;
+        }
+    }
 }
 
 
