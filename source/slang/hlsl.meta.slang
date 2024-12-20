@@ -16509,16 +16509,68 @@ static const uint HIT_KIND_TRIANGLE_BACK_FACE = 255;
 
 /// Treats `left` and `right` as 4-component vectors of `UInt8` and computes `dot(left, right) + acc`
 /// @category math
+[__readNone]
+[ForceInline]
+[require(cuda_glsl_hlsl_spirv_wgsl, sm_6_4)]
 uint dot4add_u8packed(uint left, uint right, uint acc);
+{
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "dot4add_u8packed";
+    case wgsl: __intrinsic_asm "dot4U8Packed($left, $right) + acc";
+    case spirv:
+        // OpUDotAccSat cannot be used as there should not be any saturation.
+        return spirv_asm
+        {
+            OpCapability DotProduct;
+            OpCapability DotProductInput4x8BitPacked;
+            %dotResult:$$uint = OpUDot $left $right;
+            result:$$uint = OpUAdd %dotResult $acc;
+        };
+    default:
+    }
+}
 
 /// Treats `left` and `right` as 4-component vectors of `Int8` and computes `dot(left, right) + acc`
 /// @category math
-int dot4add_i8packed(uint left, uint right, int acc);
+[__readNone]
+[ForceInline]
+[require(cuda_glsl_hlsl_spirv_wgsl, sm_6_4)]
+int dot4add_i8packed(uint left, uint right, int acc)
+{
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "dot4add_i8packed";
+    case wgsl: __intrinsic_asm "dot4I8Packed($left, $right) + acc";
+    case spirv:
+        // OpSDottAccSat cannot be used as there should not be any saturation.
+        return spirv_asm
+        {
+            OpCapability DotProduct;
+            OpCapability DotProductInput4x8BitPacked;
+            %dotResult:$$int = OpSDot $left $right;
+            result:$$int = OpIAdd %dotResult $acc;
+        };
+    default:
+    }
+}
 
 /// Computes `dot(left, right) + acc`.
 /// May not produce infinities or NaNs for intermediate results that overflow the range of `half`
 /// @category math
-float dot2add(float2 left, float2 right, float acc);
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, sm_6_4)]
+float dot2add(half2 left, half2 right, float acc)
+{
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "dot2add";
+    default:
+        float dotResult = dot(left, right);
+        return dotResult + acc;
+    }
+}
 
 //
 // Shader Model 6.5

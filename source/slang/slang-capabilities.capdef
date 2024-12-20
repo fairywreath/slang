@@ -330,6 +330,10 @@ alias cuda_hlsl_metal_spirv = cuda | hlsl | metal | spirv;
 /// [Compound]
 alias cuda_glsl_hlsl_spirv = cuda | glsl | hlsl | spirv;
 
+/// CUDA, GLSL, HLSL, SPIRV and WGSL code-gen targets
+/// [Compound]
+alias cuda_glsl_hlsl_spirv_wgsl = cuda | glsl | hlsl | spirv | wgsl;
+
 /// CUDA, GLSL, HLSL, Metal, and SPIRV code-gen targets
 /// [Compound]
 alias cuda_glsl_hlsl_metal_spirv = cuda | glsl | hlsl | metal | spirv;
@@ -357,6 +361,10 @@ alias cuda_hlsl = cuda | hlsl;
 /// CUDA, HLSL, SPIRV code-gen targets
 /// [Compound]
 alias cuda_hlsl_spirv = cuda | hlsl | spirv;
+
+/// CUDA, HLSL, SPIRV, and WGSL code-gen targets
+/// [Compound]
+alias cuda_hlsl_spirv_wgsl = cuda | hlsl | spirv | wgsl;
 
 /// GLSL, HLSL, and SPIRV code-gen targets
 /// [Compound]
@@ -386,8 +394,8 @@ alias glsl_metal_spirv_wgsl = glsl | metal | spirv | wgsl;
 /// [Compound]
 alias glsl_spirv = glsl | spirv;
 
-/// HLSL, and SPIRV code-gen targets
-/// [Compound]
+/// hlsl, and spirv code-gen targets
+/// [compound]
 alias hlsl_spirv = hlsl | spirv;
 
 // stages
