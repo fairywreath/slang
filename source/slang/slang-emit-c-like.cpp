@@ -129,13 +129,21 @@ void CLikeSourceEmitter::emitPreModuleImpl()
         m_writer->emit("\n");
     }
 }
+
+static void maybeEmitString(SourceWriter* writer, String string)
+{
+    if (string.getLength() > 0)
+    {
+        writer->emit(string);
+        writer->emit("\n");
+    }
+}
+
 void CLikeSourceEmitter::emitPostModuleImpl()
 {
-    if (m_requiredAfter.requireComputeDerivatives.getLength() > 0)
-    {
-        m_writer->emit(m_requiredAfter.requireComputeDerivatives);
-        m_writer->emit("\n");
-    }
+    maybeEmitString(m_writer, m_requiredAfter.requireComputeDerivatives);
+    maybeEmitString(m_writer, m_requiredAfter.requireQuadDerivatives);
+    maybeEmitString(m_writer, m_requiredAfter.requireRequireFullQuads);
 }
 
 //

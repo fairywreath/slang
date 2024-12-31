@@ -3,6 +3,7 @@
 #pragma once
 
 #include "slang-ast-base.h"
+#include "slang-ast-reflect.h"
 
 namespace Slang
 {
@@ -986,6 +987,16 @@ class GLSLLayoutDerivativeGroupQuadAttribute : public Attribute
 class GLSLLayoutDerivativeGroupLinearAttribute : public Attribute
 {
     SLANG_AST_CLASS(GLSLLayoutDerivativeGroupLinearAttribute)
+};
+
+class GLSLQuadDerivativesLayoutAttribute : public Attribute
+{
+    SLANG_AST_CLASS(GLSLQuadDerivativesLayoutAttribute)
+};
+
+class GLSLFullQuadsLayoutAttribute : public Attribute
+{
+    SLANG_AST_CLASS(GLSLFullQuadsLayoutAttribute)
 };
 
 // TODO: for attributes that take arguments, the syntax node

@@ -26,4 +26,7 @@ void legalizeConstantBufferLoadForGLSL(IRModule* module);
 void legalizeDispatchMeshPayloadForGLSL(IRModule* module);
 
 void legalizeDynamicResourcesForGLSL(CodeGenContext* context, IRModule* module);
+
+void legalizeEntryPointAttributeInstructionsForGLSL(IRModule* module, IRFunc* entryPointFunc);
+
 } // namespace Slang

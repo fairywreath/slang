@@ -414,18 +414,18 @@ public:
     /// Emit type attributes that should appear after, e.g., a `struct` keyword
     void emitPostKeywordTypeAttributes(IRInst* inst) { emitPostKeywordTypeAttributesImpl(inst); }
 
-    virtual void emitMemoryQualifiers(IRInst* /*varInst*/){};
+    virtual void emitMemoryQualifiers(IRInst* /*varInst*/) {};
     virtual void emitStructFieldAttributes(
         IRStructType* /* structType */,
         IRStructField* /* field */
-    ){};
+    ) {};
     void emitInterpolationModifiers(IRInst* varInst, IRType* valueType, IRVarLayout* layout);
     void emitMeshShaderModifiers(IRInst* varInst);
     virtual void emitPackOffsetModifier(
         IRInst* /*varInst*/,
         IRType* /*valueType*/,
         IRPackOffsetDecoration* /*decoration*/
-    ){};
+    ) {};
 
 
     /// Emit modifiers that should apply even for a declaration of an SSA temporary.
@@ -725,6 +725,8 @@ protected:
     struct RequiredAfter
     {
         String requireComputeDerivatives;
+        String requireQuadDerivatives;
+        String requireRequireFullQuads;
     } m_requiredAfter;
 
     Dictionary<const char*, IRStringLit*> m_builtinPreludes;

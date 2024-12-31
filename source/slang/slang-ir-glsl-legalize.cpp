@@ -3936,4 +3936,30 @@ void legalizeDynamicResourcesForGLSL(CodeGenContext* context, IRModule* module)
     }
 }
 
+void legalizeEntryPointAttributeInstructionsForGLSL(IRModule* module, IRFunc* entryPointFunc)
+{
+    IRBuilder builder(module);
+    builder.setInsertInto(entryPointFunc);
+
+    for (auto globalInst : module->getGlobalInsts())
+    {
+        if (auto func = as<IRGlobalValueWithCode>(globalInst))
+        {
+            for (auto block : func->getBlocks())
+            {
+
+                for (auto inst = block->getFirstInst(); inst; inst = inst->next)
+                {
+                    // This can be enforced by HLSL quad control intrinsics.
+                    if (as<IRRequireMaximallyReconverges>(inst))
+                    {
+                        printf("FWAA: can get macimal reconverges!\n");
+                        builder.addDecoration(entryPointFunc, kIROp_MaximallyReconvergesDecoration);
+                    }
+                }
+            }
+        }
+    }
+}
+
 } // namespace Slang

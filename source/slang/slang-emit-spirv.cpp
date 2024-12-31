@@ -3523,6 +3523,29 @@ struct SPIRVEmitContext : public SourceEmitterBase, public SPIRVEmitSharedContex
 
                 break;
             }
+
+        case kIROp_RequireMaximallyReconverges:
+            ensureExtensionDeclaration(UnownedStringSlice("SPV_KHR_maximal_reconvergence"));
+            requireSPIRVExecutionMode(
+                nullptr,
+                getIRInstSpvID(getParentFunc(inst)),
+                SpvExecutionModeMaximallyReconvergesKHR);
+            break;
+        case kIROp_RequireQuadDerivatives:
+            ensureExtensionDeclaration(UnownedStringSlice("SPV_KHR_quad_control"));
+            requireSPIRVExecutionMode(
+                nullptr,
+                getIRInstSpvID(getParentFunc(inst)),
+                SpvExecutionModeQuadDerivativesKHR);
+            break;
+        case kIROp_RequireRequireFullQuads:
+            ensureExtensionDeclaration(UnownedStringSlice("SPV_KHR_quad_control"));
+            requireSPIRVExecutionMode(
+                nullptr,
+                getIRInstSpvID(getParentFunc(inst)),
+                SpvExecutionModeRequireFullQuadsKHR);
+            break;
+
         case kIROp_Return:
             if (as<IRReturn>(inst)->getVal()->getOp() == kIROp_VoidLit)
                 result = emitOpReturn(parent, inst);
@@ -4437,6 +4460,15 @@ struct SPIRVEmitContext : public SourceEmitterBase, public SPIRVEmitSharedContex
                     SLANG_ASSERT(!"Unknown stream out type");
                 }
             }
+            break;
+        case kIROp_MaximallyReconvergesDecoration:
+            requireSPIRVExecutionMode(nullptr, dstID, SpvExecutionModeMaximallyReconvergesKHR);
+            break;
+        case kIROp_QuadDerivativesDecoration:
+            requireSPIRVExecutionMode(nullptr, dstID, SpvExecutionModeQuadDerivativesKHR);
+            break;
+        case kIROp_FullQuadsDecoration:
+            requireSPIRVExecutionMode(nullptr, dstID, SpvExecutionModeRequireFullQuadsKHR);
             break;
         case kIROp_SPIRVBufferBlockDecoration:
             {

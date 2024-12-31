@@ -15371,6 +15371,56 @@ bool IsHelperLane()
     }
 }
 
+__glsl_extension(GL_KHR_shader_subgroup_vote)
+__glsl_extension(GL_EXT_maximal_reconvergence)
+__glsl_extension(GL_EXT_shader_quad_control)
+[ForceInline]
+[require(glsl_hlsl_metal_spirv, quad_control)]
+bool QuadAny(bool expr)
+{
+    __requireMaximallyReconverges();
+    __requireQuadDerivatives();
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "QuadAny";
+    case glsl: __intrinsic_asm "subgroupQuadAny";
+    case metal: __intrinsic_asm "quad_any";
+    case spirv:
+        return spirv_asm
+        {
+            OpExtension "SPV_KHR_maximal_reconvergence";
+            OpExtension "SPV_KHR_quad_control";
+            OpCapability QuadControlKHR;
+            result:$$bool = OpGroupNonUniformQuadAnyKHR $expr;
+        };
+    }
+}
+
+__glsl_extension(GL_KHR_shader_subgroup_vote)
+__glsl_extension(GL_EXT_maximal_reconvergence)
+__glsl_extension(GL_EXT_shader_quad_control)
+[ForceInline]
+[require(glsl_hlsl_metal_spirv, quad_control)]
+bool QuadAll(bool expr)
+{
+    __requireMaximallyReconverges();
+    __requireQuadDerivatives();
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "QuadAll";
+    case glsl: __intrinsic_asm "subgroupQuadAll";
+    case metal: __intrinsic_asm "quad_all";
+    case spirv:
+        return spirv_asm
+        {
+            OpExtension "SPV_KHR_maximal_reconvergence";
+            OpExtension "SPV_KHR_quad_control";
+            OpCapability QuadControlKHR;
+            result:$$bool = OpGroupNonUniformQuadAllKHR $expr;
+        };
+    }
+}
+
 // `typedef`s to help with the fact that HLSL has been sorta-kinda case insensitive at various points
 //@hidden:
 typedef Texture2D texture2D;

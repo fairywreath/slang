@@ -7572,10 +7572,10 @@ struct DeclLoweringVisitor : DeclVisitor<DeclLoweringVisitor, LoweredValInfo>
         List<IRInst*> entryPoints{};
         for (const auto modifier : decl->modifiers)
         {
+            getAllEntryPointsNoOverride(entryPoints);
             if (const auto layoutLocalSizeAttr = as<GLSLLayoutLocalSizeAttribute>(modifier))
             {
                 verifyComputeDerivativeGroupModifier = true;
-                getAllEntryPointsNoOverride(entryPoints);
                 for (auto d : entryPoints)
                     as<IRNumThreadsDecoration>(getBuilder()->addNumThreadsDecoration(
                         d,
@@ -7586,16 +7586,25 @@ struct DeclLoweringVisitor : DeclVisitor<DeclLoweringVisitor, LoweredValInfo>
             else if (as<GLSLLayoutDerivativeGroupQuadAttribute>(modifier))
             {
                 verifyComputeDerivativeGroupModifier = true;
-                getAllEntryPointsNoOverride(entryPoints);
                 for (auto d : entryPoints)
                     getBuilder()->addSimpleDecoration<IRDerivativeGroupQuadDecoration>(d);
             }
             else if (as<GLSLLayoutDerivativeGroupLinearAttribute>(modifier))
             {
                 verifyComputeDerivativeGroupModifier = true;
-                getAllEntryPointsNoOverride(entryPoints);
                 for (auto d : entryPoints)
                     getBuilder()->addSimpleDecoration<IRDerivativeGroupLinearDecoration>(d);
+            }
+            else if (as<GLSLLayoutDerivativeGroupLinearAttribute>(modifier))
+            {
+                for (auto d : entryPoints)
+                    getBuilder()->addSimpleDecoration<IRQuadDerivativesDecoration>(d);
+            }
+            else if (as<GLSLLayoutDerivativeGroupLinearAttribute>(modifier))
+            {
+                verifyComputeDerivativeGroupModifier = true;
+                for (auto d : entryPoints)
+                    getBuilder()->addSimpleDecoration<IRFullQuadsDecoration>(d);
             }
         }
 

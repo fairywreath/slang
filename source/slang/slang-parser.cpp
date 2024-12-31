@@ -1,6 +1,7 @@
 #include "slang-parser.h"
 
 #include "../core/slang-semantic-version.h"
+#include "slang-ast-modifier.h"
 #include "slang-compiler.h"
 #include "slang-lookup-spirv.h"
 #include "slang-lookup.h"
@@ -8486,6 +8487,8 @@ static NodeBase* parseLayoutModifier(Parser* parser, void* /*userData*/)
             CASE(std140, GLSLStd140Modifier)
             CASE(std430, GLSLStd430Modifier)
             CASE(scalar, GLSLScalarModifier)
+            CASE(quad_derivatives, GLSLQuadDerivativesLayoutAttribute)
+            CASE(full_quads, GLSLFullQuadsLayoutAttribute)
             {
                 modifier = parseUncheckedGLSLLayoutAttribute(parser, nameAndLoc);
             }

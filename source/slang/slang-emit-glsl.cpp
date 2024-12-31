@@ -4,6 +4,7 @@
 #include "../core/slang-writer.h"
 #include "slang-emit-source-writer.h"
 #include "slang-ir-call-graph.h"
+#include "slang-ir-insts.h"
 #include "slang-ir-layout.h"
 #include "slang-ir-util.h"
 #include "slang-legalize-types.h"
@@ -1470,6 +1471,11 @@ void GLSLSourceEmitter::emitEntryPointAttributesImpl(
     default:
         break;
     }
+
+    if (irFunc->findDecoration<IRMaximallyReconvergesDecoration>())
+    {
+        m_writer->emit("[[maximally_reconverges]]\n");
+    }
 }
 
 void GLSLSourceEmitter::_emitGLSLPerVertexVaryingFragmentInput(IRGlobalParam* param, IRType* type)
@@ -2800,6 +2806,14 @@ void GLSLSourceEmitter::handleRequiredCapabilitiesImpl(IRInst* inst)
                         "layout(derivative_group_linearNV) in;";
                 }
             }
+        }
+        else if (as<IRRequireQuadDerivatives>(childInst))
+        {
+            m_requiredAfter.requireQuadDerivatives = "layout(quad_derivatives) in";
+        }
+        else if (as<IRRequireRequireFullQuads>(childInst))
+        {
+            m_requiredAfter.requireRequireFullQuads = "layout(full_quads) in";
         }
     }
 }

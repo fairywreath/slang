@@ -1299,6 +1299,9 @@ Result linkAndOptimizeIR(
     switch (target)
     {
     case CodeGenTarget::GLSL:
+        for (auto func : irEntryPoints)
+            legalizeEntryPointAttributeInstructionsForGLSL(irModule, func);
+        // Fallthrough
     case CodeGenTarget::SPIRV:
     case CodeGenTarget::SPIRVAssembly:
         {

@@ -3224,6 +3224,15 @@ __Addr<T> __getLegalizedSPIRVGlobalParamAddr(T val);
 __intrinsic_op($(kIROp_RequireComputeDerivative))
 void __requireComputeDerivative();
 
+__intrinsic_op($(kIROp_RequireMaximallyReconverges))
+void __requireMaximallyReconverges();
+
+__intrinsic_op($(kIROp_RequireQuadDerivatives))
+void __requireQuadDerivatives();
+
+__intrinsic_op($(kIROp_RequireRequireFullQuads))
+void __requireRequireFullQuads();
+
 //@ public:
 /// @category misc_types 
 enum MemoryOrder
