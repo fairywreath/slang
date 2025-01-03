@@ -25,9 +25,52 @@ GLSLSourceEmitter::GLSLSourceEmitter(const Desc& desc)
     SLANG_ASSERT(m_glslExtensionTracker);
 }
 
+void GLSLSourceEmitter::_beforeComputeEmitProcessInstruction(
+    IRInst* parentFunc,
+    IRInst* inst,
+    IRBuilder& builder)
+{
+    // Handle cases where "require" IR operations exist in the function body and are required
+    // as entry point decorations.
+    auto handleDecoration = [&](IROp op)
+    {
+        if (auto entryPoints = getReferencingEntryPoints(m_referencingEntryPoints, parentFunc))
+        {
+            for (auto entryPoint : *entryPoints)
+            {
+                builder.addDecoration(entryPoint, op);
+            }
+        }
+    };
+
+    if (as<IRRequireMaximallyReconverges>(inst))
+    {
+        handleDecoration(kIROp_MaximallyReconvergesDecoration);
+    }
+    else if (as<IRRequireQuadDerivatives>(inst))
+    {
+        handleDecoration(kIROp_QuadDerivativesDecoration);
+    }
+}
+
 void GLSLSourceEmitter::beforeComputeEmitActions(IRModule* module)
 {
     buildEntryPointReferenceGraph(this->m_referencingEntryPoints, module);
+
+    IRBuilder builder(module);
+    for (auto globalInst : module->getGlobalInsts())
+    {
+        if (auto func = as<IRGlobalValueWithCode>(globalInst))
+        {
+            for (auto block : func->getBlocks())
+            {
+                for (auto inst = block->getFirstInst(); inst; inst = inst->next)
+                {
+                    _beforeComputeEmitProcessInstruction(func, inst, builder);
+                }
+            }
+        }
+    }
 }
 
 SlangResult GLSLSourceEmitter::init()
@@ -1354,132 +1397,160 @@ void GLSLSourceEmitter::emitEntryPointAttributesImpl(
     switch (stage)
     {
     case Stage::Compute:
-        {
-            emitLocalSizeLayout();
-        }
-        break;
-    case Stage::Geometry:
-        {
-            if (auto decor = irFunc->findDecoration<IRMaxVertexCountDecoration>())
-            {
-                auto count = getIntVal(decor->getCount());
-                m_writer->emit("layout(max_vertices = ");
-                m_writer->emit(Int(count));
-                m_writer->emit(") out;\n");
-            }
-
-            if (auto decor = irFunc->findDecoration<IRInstanceDecoration>())
-            {
-                auto count = getIntVal(decor->getCount());
-                m_writer->emit("layout(invocations = ");
-                m_writer->emit(Int(count));
-                m_writer->emit(") in;\n");
-            }
-
-            // These decorations were moved from the parameters to the entry point by
-            // ir-glsl-legalize. The actual parameters have become potentially multiple global
-            // parameters.
-            if (auto decor = irFunc->findDecoration<IRGeometryInputPrimitiveTypeDecoration>())
-            {
-                switch (decor->getOp())
-                {
-                case kIROp_TriangleInputPrimitiveTypeDecoration:
-                    m_writer->emit("layout(triangles) in;\n");
-                    break;
-                case kIROp_LineInputPrimitiveTypeDecoration:
-                    m_writer->emit("layout(lines) in;\n");
-                    break;
-                case kIROp_LineAdjInputPrimitiveTypeDecoration:
-                    m_writer->emit("layout(lines_adjacency) in;\n");
-                    break;
-                case kIROp_PointInputPrimitiveTypeDecoration:
-                    m_writer->emit("layout(points) in;\n");
-                    break;
-                case kIROp_TriangleAdjInputPrimitiveTypeDecoration:
-                    m_writer->emit("layout(triangles_adjacency) in;\n");
-                    break;
-                default:
-                    {
-                        SLANG_ASSERT(!"Unknown primitive type");
-                    }
-                }
-            }
-
-            if (auto decor = irFunc->findDecoration<IRStreamOutputTypeDecoration>())
-            {
-                IRType* type = decor->getStreamType();
-
-                switch (type->getOp())
-                {
-                case kIROp_HLSLPointStreamType:
-                    m_writer->emit("layout(points) out;\n");
-                    break;
-                case kIROp_HLSLLineStreamType:
-                    m_writer->emit("layout(line_strip) out;\n");
-                    break;
-                case kIROp_HLSLTriangleStreamType:
-                    m_writer->emit("layout(triangle_strip) out;\n");
-                    break;
-                default:
-                    SLANG_ASSERT(!"Unknown stream out type");
-                }
-            }
-        }
-        break;
-    case Stage::Pixel:
-        {
-            if (irFunc->findDecoration<IREarlyDepthStencilDecoration>())
-            {
-                // https://www.khronos.org/opengl/wiki/Early_Fragment_Test
-                m_writer->emit("layout(early_fragment_tests) in;\n");
-            }
-            break;
-        }
     case Stage::Mesh:
-        {
-            emitLocalSizeLayout();
-            if (auto decor = irFunc->findDecoration<IRVerticesDecoration>())
-            {
-                m_writer->emit("layout(max_vertices = ");
-                m_writer->emit(decor->getMaxSize()->getValue());
-                m_writer->emit(") out;\n");
-            }
-            if (auto decor = irFunc->findDecoration<IRPrimitivesDecoration>())
-            {
-                m_writer->emit("layout(max_primitives = ");
-                m_writer->emit(decor->getMaxSize()->getValue());
-                m_writer->emit(") out;\n");
-            }
-            if (auto decor = irFunc->findDecoration<IROutputTopologyDecoration>())
-            {
-                // TODO: Ellie validate here/elsewhere, what's allowed here is
-                // different from the tesselator
-                // The naming here is plural, so add an 's'
-                m_writer->emit("layout(");
-                m_writer->emit(decor->getTopology()->getStringSlice());
-                m_writer->emit("s) out;\n");
-            }
-        }
-        break;
     case Stage::Amplification:
-        {
-            emitLocalSizeLayout();
-        }
-        break;
-    // TODO: There are other stages that will need this kind of handling.
+        emitLocalSizeLayout();
     default:
         break;
     }
 
-    if (irFunc->findDecoration<IRQuadDerivativesDecoration>())
+    /// Structure to track (some) entry point attributes, to allow ordering when emitting and to
+    /// ensure decorations are only emitted once.
+    ///
+    /// These entry points attributes may be implicitly added by built-in functions and the same
+    /// function may be called multiple times, hence the need to ensure they are only emitted once.
+    struct GLSLEntryPointAttributes
+    {
+        bool quadDerivatives;
+        bool requireFullQuads;
+        bool maximallyReconverges;
+    } attributes{};
+
+    for (auto decoration : irFunc->getDecorations())
+    {
+        if (as<IRQuadDerivativesDecoration>(decoration))
+        {
+            attributes.quadDerivatives = true;
+        }
+        else if (as<IRRequireFullQuadsDecoration>(decoration))
+        {
+            attributes.requireFullQuads = true;
+        }
+
+        switch (stage)
+        {
+        case Stage::Geometry:
+            {
+                if (auto decor = as<IRMaxVertexCountDecoration>(decoration))
+                {
+                    auto count = getIntVal(decor->getCount());
+                    m_writer->emit("layout(max_vertices = ");
+                    m_writer->emit(Int(count));
+                    m_writer->emit(") out;\n");
+                }
+
+                if (auto decor = as<IRInstanceDecoration>(decoration))
+                {
+                    auto count = getIntVal(decor->getCount());
+                    m_writer->emit("layout(invocations = ");
+                    m_writer->emit(Int(count));
+                    m_writer->emit(") in;\n");
+                }
+
+                // These decorations were moved from the parameters to the entry point by
+                // ir-glsl-legalize. The actual parameters have become potentially multiple global
+                // parameters.
+                if (auto decor = as<IRGeometryInputPrimitiveTypeDecoration>(decoration))
+                {
+                    switch (decor->getOp())
+                    {
+                    case kIROp_TriangleInputPrimitiveTypeDecoration:
+                        m_writer->emit("layout(triangles) in;\n");
+                        break;
+                    case kIROp_LineInputPrimitiveTypeDecoration:
+                        m_writer->emit("layout(lines) in;\n");
+                        break;
+                    case kIROp_LineAdjInputPrimitiveTypeDecoration:
+                        m_writer->emit("layout(lines_adjacency) in;\n");
+                        break;
+                    case kIROp_PointInputPrimitiveTypeDecoration:
+                        m_writer->emit("layout(points) in;\n");
+                        break;
+                    case kIROp_TriangleAdjInputPrimitiveTypeDecoration:
+                        m_writer->emit("layout(triangles_adjacency) in;\n");
+                        break;
+                    default:
+                        {
+                            SLANG_ASSERT(!"Unknown primitive type");
+                        }
+                    }
+                }
+
+                if (auto decor = as<IRStreamOutputTypeDecoration>(decoration))
+                {
+                    IRType* type = decor->getStreamType();
+
+                    switch (type->getOp())
+                    {
+                    case kIROp_HLSLPointStreamType:
+                        m_writer->emit("layout(points) out;\n");
+                        break;
+                    case kIROp_HLSLLineStreamType:
+                        m_writer->emit("layout(line_strip) out;\n");
+                        break;
+                    case kIROp_HLSLTriangleStreamType:
+                        m_writer->emit("layout(triangle_strip) out;\n");
+                        break;
+                    default:
+                        SLANG_ASSERT(!"Unknown stream out type");
+                    }
+                }
+            }
+            break;
+        case Stage::Pixel:
+            {
+                if (as<IREarlyDepthStencilDecoration>(decoration))
+                {
+                    // https://www.khronos.org/opengl/wiki/Early_Fragment_Test
+                    m_writer->emit("layout(early_fragment_tests) in;\n");
+                }
+                if (as<IRMaximallyReconvergesDecoration>(decoration))
+                {
+                    attributes.maximallyReconverges = true;
+                }
+                break;
+            }
+        case Stage::Mesh:
+            {
+                if (auto decor = as<IRVerticesDecoration>(decoration))
+                {
+                    m_writer->emit("layout(max_vertices = ");
+                    m_writer->emit(decor->getMaxSize()->getValue());
+                    m_writer->emit(") out;\n");
+                }
+                if (auto decor = as<IRPrimitivesDecoration>(decoration))
+                {
+                    m_writer->emit("layout(max_primitives = ");
+                    m_writer->emit(decor->getMaxSize()->getValue());
+                    m_writer->emit(") out;\n");
+                }
+                if (auto decor = as<IROutputTopologyDecoration>(decoration))
+                {
+                    // TODO: Ellie validate here/elsewhere, what's allowed here is
+                    // different from the tesselator
+                    // The naming here is plural, so add an 's'
+                    m_writer->emit("layout(");
+                    m_writer->emit(decor->getTopology()->getStringSlice());
+                    m_writer->emit("s) out;\n");
+                }
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (attributes.quadDerivatives)
     {
         m_writer->emit("layout(quad_derivatives) in;\n");
     }
-    if (irFunc->findDecoration<IRRequireFullQuadsDecoration>())
+    if (attributes.requireFullQuads)
     {
         m_writer->emit("layout(full_quads) in;\n");
     }
-    if (irFunc->findDecoration<IRMaximallyReconvergesDecoration>())
+    // This must be emitted last because GLSL's `[[..]]` attribute syntax must come right
+    // before or after the entry point function declaration.
+    if (attributes.maximallyReconverges)
     {
         m_writer->emit("[[maximally_reconverges]]\n");
     }
