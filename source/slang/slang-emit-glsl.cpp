@@ -4,6 +4,7 @@
 #include "../core/slang-writer.h"
 #include "slang-emit-source-writer.h"
 #include "slang-ir-call-graph.h"
+#include "slang-ir-insts.h"
 #include "slang-ir-layout.h"
 #include "slang-ir-util.h"
 #include "slang-legalize-types.h"
@@ -30,16 +31,23 @@ void GLSLSourceEmitter::_beforeComputeEmitProcessInstruction(
     IRInst* inst,
     IRBuilder& builder)
 {
+    if (auto requireGLSLExt = as<IRRequireGLSLExtension>(inst))
+    {
+        _requireGLSLExtension(requireGLSLExt->getExtensionName());
+    }
+
+    // Check for entry point specific decorations.
+    //
     // Handle cases where "require" IR operations exist in the function body and are required
     // as entry point decorations.
+    auto entryPoints = getReferencingEntryPoints(m_referencingEntryPoints, parentFunc);
+    if (entryPoints == nullptr)
+        return;
     auto handleDecoration = [&](IROp op)
     {
-        if (auto entryPoints = getReferencingEntryPoints(m_referencingEntryPoints, parentFunc))
+        for (auto entryPoint : *entryPoints)
         {
-            for (auto entryPoint : *entryPoints)
-            {
-                builder.addDecoration(entryPoint, op);
-            }
+            builder.addDecoration(entryPoint, op);
         }
     };
 
@@ -50,6 +58,22 @@ void GLSLSourceEmitter::_beforeComputeEmitProcessInstruction(
     else if (as<IRRequireQuadDerivatives>(inst))
     {
         handleDecoration(kIROp_QuadDerivativesDecoration);
+    }
+    else if (const auto requireComputeDerivative = as<IRRequireComputeDerivative>(inst))
+    {
+        if (m_entryPointStage == Stage::Compute)
+
+
+            for (auto entryPoint : *entryPoints)
+            {
+                // Compute derivatives are quad by default, add the decoration if entry point does
+                // not not explicit linear decoration.
+                bool isQuad = !entryPoint->findDecoration<IRDerivativeGroupLinearDecoration>();
+                if (isQuad)
+                {
+                    builder.addDecoration(entryPoint, kIROp_DerivativeGroupQuadDecoration);
+                }
+            }
     }
 }
 
@@ -1375,11 +1399,10 @@ void GLSLSourceEmitter::emitEntryPointAttributesImpl(
     auto profile = entryPointDecor->getProfile();
     auto stage = profile.getStage();
 
+    Int sizeAlongAxis[kThreadGroupAxisCount];
+    auto numThreadsDecor = getComputeThreadGroupSize(irFunc, sizeAlongAxis);
     auto emitLocalSizeLayout = [&]()
     {
-        Int sizeAlongAxis[kThreadGroupAxisCount];
-        getComputeThreadGroupSize(irFunc, sizeAlongAxis);
-
         m_writer->emit("layout(");
         char const* axes[] = {"x", "y", "z"};
         for (int ii = 0; ii < kThreadGroupAxisCount; ++ii)
@@ -1414,125 +1437,154 @@ void GLSLSourceEmitter::emitEntryPointAttributesImpl(
         bool quadDerivatives;
         bool requireFullQuads;
         bool maximallyReconverges;
+        String computeDerivatives;
     } attributes{};
+
+    const auto requireQuadControlExtensions = [&]()
+    {
+        _requireGLSLExtension(UnownedStringSlice("GL_KHR_shader_subgroup_vote"));
+        _requireGLSLExtension(UnownedStringSlice("GL_EXT_shader_quad_control"));
+    };
 
     for (auto decoration : irFunc->getDecorations())
     {
-        if (as<IRQuadDerivativesDecoration>(decoration))
+        // Stage agnostic decorations.
+        if (as<IRMaximallyReconvergesDecoration>(decoration))
         {
-            attributes.quadDerivatives = true;
+            _requireGLSLExtension(UnownedStringSlice("GL_EXT_maximal_reconvergence"));
+            attributes.maximallyReconverges = true;
         }
-        else if (as<IRRequireFullQuadsDecoration>(decoration))
+        else if (as<IRQuadDerivativesDecoration>(decoration))
         {
-            attributes.requireFullQuads = true;
+            requireQuadControlExtensions();
+            attributes.quadDerivatives = true;
         }
 
         switch (stage)
         {
         case Stage::Geometry:
+            if (auto decor = as<IRMaxVertexCountDecoration>(decoration))
             {
-                if (auto decor = as<IRMaxVertexCountDecoration>(decoration))
-                {
-                    auto count = getIntVal(decor->getCount());
-                    m_writer->emit("layout(max_vertices = ");
-                    m_writer->emit(Int(count));
-                    m_writer->emit(") out;\n");
-                }
+                auto count = getIntVal(decor->getCount());
+                m_writer->emit("layout(max_vertices = ");
+                m_writer->emit(Int(count));
+                m_writer->emit(") out;\n");
+            }
 
-                if (auto decor = as<IRInstanceDecoration>(decoration))
-                {
-                    auto count = getIntVal(decor->getCount());
-                    m_writer->emit("layout(invocations = ");
-                    m_writer->emit(Int(count));
-                    m_writer->emit(") in;\n");
-                }
+            if (auto decor = as<IRInstanceDecoration>(decoration))
+            {
+                auto count = getIntVal(decor->getCount());
+                m_writer->emit("layout(invocations = ");
+                m_writer->emit(Int(count));
+                m_writer->emit(") in;\n");
+            }
 
-                // These decorations were moved from the parameters to the entry point by
-                // ir-glsl-legalize. The actual parameters have become potentially multiple global
-                // parameters.
-                if (auto decor = as<IRGeometryInputPrimitiveTypeDecoration>(decoration))
+            // These decorations were moved from the parameters to the entry point by
+            // ir-glsl-legalize. The actual parameters have become potentially multiple global
+            // parameters.
+            if (auto decor = as<IRGeometryInputPrimitiveTypeDecoration>(decoration))
+            {
+                switch (decor->getOp())
                 {
-                    switch (decor->getOp())
+                case kIROp_TriangleInputPrimitiveTypeDecoration:
+                    m_writer->emit("layout(triangles) in;\n");
+                    break;
+                case kIROp_LineInputPrimitiveTypeDecoration:
+                    m_writer->emit("layout(lines) in;\n");
+                    break;
+                case kIROp_LineAdjInputPrimitiveTypeDecoration:
+                    m_writer->emit("layout(lines_adjacency) in;\n");
+                    break;
+                case kIROp_PointInputPrimitiveTypeDecoration:
+                    m_writer->emit("layout(points) in;\n");
+                    break;
+                case kIROp_TriangleAdjInputPrimitiveTypeDecoration:
+                    m_writer->emit("layout(triangles_adjacency) in;\n");
+                    break;
+                default:
                     {
-                    case kIROp_TriangleInputPrimitiveTypeDecoration:
-                        m_writer->emit("layout(triangles) in;\n");
-                        break;
-                    case kIROp_LineInputPrimitiveTypeDecoration:
-                        m_writer->emit("layout(lines) in;\n");
-                        break;
-                    case kIROp_LineAdjInputPrimitiveTypeDecoration:
-                        m_writer->emit("layout(lines_adjacency) in;\n");
-                        break;
-                    case kIROp_PointInputPrimitiveTypeDecoration:
-                        m_writer->emit("layout(points) in;\n");
-                        break;
-                    case kIROp_TriangleAdjInputPrimitiveTypeDecoration:
-                        m_writer->emit("layout(triangles_adjacency) in;\n");
-                        break;
-                    default:
-                        {
-                            SLANG_ASSERT(!"Unknown primitive type");
-                        }
+                        SLANG_ASSERT(!"Unknown primitive type");
                     }
                 }
+            }
 
-                if (auto decor = as<IRStreamOutputTypeDecoration>(decoration))
+            if (auto decor = as<IRStreamOutputTypeDecoration>(decoration))
+            {
+                IRType* type = decor->getStreamType();
+
+                switch (type->getOp())
                 {
-                    IRType* type = decor->getStreamType();
-
-                    switch (type->getOp())
-                    {
-                    case kIROp_HLSLPointStreamType:
-                        m_writer->emit("layout(points) out;\n");
-                        break;
-                    case kIROp_HLSLLineStreamType:
-                        m_writer->emit("layout(line_strip) out;\n");
-                        break;
-                    case kIROp_HLSLTriangleStreamType:
-                        m_writer->emit("layout(triangle_strip) out;\n");
-                        break;
-                    default:
-                        SLANG_ASSERT(!"Unknown stream out type");
-                    }
+                case kIROp_HLSLPointStreamType:
+                    m_writer->emit("layout(points) out;\n");
+                    break;
+                case kIROp_HLSLLineStreamType:
+                    m_writer->emit("layout(line_strip) out;\n");
+                    break;
+                case kIROp_HLSLTriangleStreamType:
+                    m_writer->emit("layout(triangle_strip) out;\n");
+                    break;
+                default:
+                    SLANG_ASSERT(!"Unknown stream out type");
                 }
             }
             break;
         case Stage::Pixel:
+            if (as<IREarlyDepthStencilDecoration>(decoration))
             {
-                if (as<IREarlyDepthStencilDecoration>(decoration))
-                {
-                    // https://www.khronos.org/opengl/wiki/Early_Fragment_Test
-                    m_writer->emit("layout(early_fragment_tests) in;\n");
-                }
-                if (as<IRMaximallyReconvergesDecoration>(decoration))
-                {
-                    attributes.maximallyReconverges = true;
-                }
-                break;
+                // https://www.khronos.org/opengl/wiki/Early_Fragment_Test
+                m_writer->emit("layout(early_fragment_tests) in;\n");
             }
-        case Stage::Mesh:
+            else if (as<IRRequireFullQuadsDecoration>(decoration))
             {
-                if (auto decor = as<IRVerticesDecoration>(decoration))
-                {
-                    m_writer->emit("layout(max_vertices = ");
-                    m_writer->emit(decor->getMaxSize()->getValue());
-                    m_writer->emit(") out;\n");
-                }
-                if (auto decor = as<IRPrimitivesDecoration>(decoration))
-                {
-                    m_writer->emit("layout(max_primitives = ");
-                    m_writer->emit(decor->getMaxSize()->getValue());
-                    m_writer->emit(") out;\n");
-                }
-                if (auto decor = as<IROutputTopologyDecoration>(decoration))
-                {
-                    // TODO: Ellie validate here/elsewhere, what's allowed here is
-                    // different from the tesselator
-                    // The naming here is plural, so add an 's'
-                    m_writer->emit("layout(");
-                    m_writer->emit(decor->getTopology()->getStringSlice());
-                    m_writer->emit("s) out;\n");
-                }
+                requireQuadControlExtensions();
+                attributes.requireFullQuads = true;
+            }
+            break;
+        case Stage::Compute:
+            if (as<IRDerivativeGroupQuadDecoration>(decoration))
+            {
+                _requireGLSLExtension(UnownedStringSlice("GL_NV_compute_shader_derivatives"));
+                verifyComputeDerivativeGroupModifiers(
+                    getSink(),
+                    decoration->sourceLoc,
+                    true,
+                    false,
+                    numThreadsDecor);
+                attributes.computeDerivatives = "layout(derivative_group_quadsNV) in; ";
+            }
+            else if (as<IRDerivativeGroupLinearDecoration>(decoration))
+            {
+                _requireGLSLExtension(UnownedStringSlice("GL_NV_compute_shader_derivatives"));
+                verifyComputeDerivativeGroupModifiers(
+                    getSink(),
+                    decoration->sourceLoc,
+                    false,
+                    true,
+                    numThreadsDecor);
+                attributes.computeDerivatives = "layout(derivative_group_linearNV) in;";
+            }
+            break;
+        case Stage::Mesh:
+            if (auto decor = as<IRVerticesDecoration>(decoration))
+            {
+                m_writer->emit("layout(max_vertices = ");
+                m_writer->emit(decor->getMaxSize()->getValue());
+                m_writer->emit(") out;\n");
+            }
+            if (auto decor = as<IRPrimitivesDecoration>(decoration))
+            {
+                m_writer->emit("layout(max_primitives = ");
+                m_writer->emit(decor->getMaxSize()->getValue());
+                m_writer->emit(") out;\n");
+            }
+            if (auto decor = as<IROutputTopologyDecoration>(decoration))
+            {
+                // TODO: Ellie validate here/elsewhere, what's allowed here is
+                // different from the tesselator
+                // The naming here is plural, so add an 's'
+                m_writer->emit("layout(");
+                m_writer->emit(decor->getTopology()->getStringSlice());
+                m_writer->emit("s) out;\n");
             }
             break;
         default:
@@ -1548,8 +1600,16 @@ void GLSLSourceEmitter::emitEntryPointAttributesImpl(
     {
         m_writer->emit("layout(full_quads) in;\n");
     }
+
+    // This must be emitted after local size when using glslang.
+    if (attributes.computeDerivatives.getLength() > 0)
+    {
+        m_writer->emit(attributes.computeDerivatives);
+        m_writer->emit("\n");
+    }
+
     // This must be emitted last because GLSL's `[[..]]` attribute syntax must come right
-    // before or after the entry point function declaration.
+    // before the entry point function declaration.
     if (attributes.maximallyReconverges)
     {
         m_writer->emit("[[maximally_reconverges]]\n");
@@ -2826,63 +2886,6 @@ void GLSLSourceEmitter::handleRequiredCapabilitiesImpl(IRInst* inst)
                 version.setFromInteger(SemanticVersion::IntegerType(intValue));
                 _requireSPIRVVersion(version);
                 break;
-            }
-        }
-    }
-
-    // The function may have various requirment declaring functions its body. We also need to look
-    // for them.
-    auto func = as<IRFunc>(inst);
-    if (!func)
-        return;
-    auto block = func->getFirstBlock();
-    if (!block)
-        return;
-    for (auto childInst : block->getChildren())
-    {
-        if (auto requireGLSLExt = as<IRRequireGLSLExtension>(childInst))
-        {
-            _requireGLSLExtension(requireGLSLExt->getExtensionName());
-        }
-        else if (const auto requireComputeDerivative = as<IRRequireComputeDerivative>(childInst))
-        {
-            // only allowed 1 of derivative_group_quadsNV or derivative_group_linearNV
-            if (m_entryPointStage != Stage::Compute ||
-                m_requiredAfter.requireComputeDerivatives.getLength() > 0)
-                return;
-
-            _requireGLSLExtension(UnownedStringSlice("GL_NV_compute_shader_derivatives"));
-
-            // This will only run once per program.
-            HashSet<IRFunc*>* entryPointsUsingInst =
-                getReferencingEntryPoints(m_referencingEntryPoints, func);
-
-            for (auto entryPoint : *entryPointsUsingInst)
-            {
-                bool isQuad = !entryPoint->findDecoration<IRDerivativeGroupLinearDecoration>();
-                auto numThreadsDecor = entryPoint->findDecoration<IRNumThreadsDecoration>();
-                if (isQuad)
-                {
-                    verifyComputeDerivativeGroupModifiers(
-                        getSink(),
-                        inst->sourceLoc,
-                        true,
-                        false,
-                        numThreadsDecor);
-                    m_requiredAfter.requireComputeDerivatives =
-                        "layout(derivative_group_quadsNV) in;";
-                }
-                else
-                {
-                    verifyComputeDerivativeGroupModifiers(
-                        getSink(),
-                        inst->sourceLoc,
-                        false,
-                        true,
-                        numThreadsDecor);
-                    m_requiredAfter.requireComputeDerivatives =
-                        "layout(derivative_group_linearNV) in;";
-                }
             }
         }
     }
