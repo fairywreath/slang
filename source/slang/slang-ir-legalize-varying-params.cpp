@@ -2872,11 +2872,41 @@ private:
                     });
                 fixUpFuncType(func, flattenedStruct);
             }
+
+            //  WIP:
+            List<IRParam*> paramsToPack;
+            for (auto param : func->getParams())
+            {
+                auto layout = findVarLayout(param);
+                // if (!layout)
+                //     continue;
+                // if (!layout->findOffsetAttr(LayoutResourceKind::VaryingInput))
+                //     continue;
+                // if (param->findDecorationImpl(kIROp_HLSLMeshPayloadDecoration))
+                //     continue;
+                // if (layout->findOffsetAttr(LayoutResourceKind::VaryingOutput))
+                // {
+                //     printf("FW: found varying output, adding to pack...\n");
+                //     paramsToPack.add(param);
+                // }
+                //
+                for (auto offsetAttr : layout->getOffsetAttrs())
+                {
+                    // if (offsetAttr->getResourceKind() == kind)
+                    // return offsetAttr;
+                    printf("FW-----\n");
+                    printf("FW: offset attr kind is %d\n", (int)offsetAttr->getResourceKind());
+                }
+            }
+            //
+
             // Ensure non-overlapping semantics
             fixFieldSemanticsOfFlatStruct(flattenedStruct);
             ensureStructHasUserSemantic<LayoutResourceKind::VaryingOutput>(
                 flattenedStruct,
                 resultLayout);
+
+
             return;
         }
 

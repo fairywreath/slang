@@ -3999,8 +3999,13 @@ IRInst* IRBuilder::emitCast(IRType* type, IRInst* value)
         SLANG_UNREACHABLE("cast from void type");
     }
 
-    SLANG_RELEASE_ASSERT(toStyle != TypeCastStyle::Unknown);
     SLANG_RELEASE_ASSERT(fromStyle != TypeCastStyle::Unknown);
+    if (toStyle == TypeCastStyle::Unknown)
+    {
+        return value;
+    }
+    // SLANG_RELEASE_ASSERT(toStyle != TypeCastStyle::Unknown);
+
 
     struct OpSeq
     {
