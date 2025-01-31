@@ -1998,6 +1998,21 @@ extension _Texture<T,Shape,isArray,isMS,sampleCount,0,isShadow,0,format>
                 || T is half || T is vector<half,2> || T is vector<half,3> || T is vector<half,4>
                 , "HLSL supports only float and half type textures");
             __intrinsic_asm ".Sample";
+        case spirv:
+            return spirv_asm
+            {
+                OpCapability MinLod;
+                OpCapability SparseResidency;
+                %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+                %sampledImage : __sampledImageType(this) = OpSampledImage $this $s;
+
+                %sparseResult : %sparseResultType = OpImageSparseSampleImplicitLod %sampledImage $location None|ConstOffset|MinLod $offset $clamp;
+                %residentCode: $$uint = OpCompositeExtract %sparseResult 0;
+                %sampled : __sampledType(T) = OpCompositeExtract  %sparseResult 1;
+
+                OpStore &status %residentCode;
+                __truncate $$T result __sampledType(T) %sampled;
+            };
         default:
             status = 0;
             return Sample(s, location, offset, clamp);
@@ -7458,12 +7473,18 @@ T copysign(T x, T y)
 
 // Check access status to tiled resource
 [ForceInline]
-[require(hlsl, sm_5_0)]
-bool CheckAccessFullyMapped(out uint status)
+[require(hlsl_spirv, sm_5_0)]
+bool CheckAccessFullyMapped(uint status)
 {
     __target_switch
     {
     case hlsl: __intrinsic_asm "CheckAccessFullyMapped";
+    case spirv:
+        return spirv_asm
+        {
+            OpCapability SparseResidency;
+            result:$$bool = OpImageSparseTexelsResident $status;
+        };
     }
 }
 
