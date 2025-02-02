@@ -3089,6 +3089,30 @@ vector<T.Element,4> __texture_gather(
 
 __generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
 [ForceInline]
+[require(spirv, texture_gather)]
+vector<T.Element,4> __texture_gather(
+    _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 0, format> texture,
+    SamplerState s,
+    vector<float, Shape.dimensions+isArray> location,
+    int component,
+    out uint status)
+{
+    return spirv_asm 
+    {
+        OpCapability SparseResidency;
+        %sparseResultType = OpTypeStruct $$uint $$vector<T.Element,4>;
+        %sampledImage : __sampledImageType(texture) = OpSampledImage $texture $s;
+
+        %sparseResult:%sparseResultType = OpImageSparseGather %sampledImage $location $component;
+
+        %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+        OpStore &status %residentCode;
+        result:$$vector<T.Element,4> = OpCompositeExtract %sparseResult 1;
+    };
+}
+
+__generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
+[ForceInline]
 [require(glsl_spirv, texture_gather)]
 vector<T.Element,4> __texture_gather(
     _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 1, format> sampler,
@@ -3104,6 +3128,28 @@ vector<T.Element,4> __texture_gather(
             result:$$vector<T.Element,4> = OpImageGather $sampler $location $component;
         };
     }
+}
+
+__generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
+[ForceInline]
+[require(spirv, texture_gather)]
+vector<T.Element,4> __texture_gather(
+    _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 1, format> sampler,
+    vector<float, Shape.dimensions+isArray> location,
+    int component,
+    out uint status)
+{
+    return spirv_asm 
+    {
+        OpCapability SparseResidency;
+        %sparseResultType = OpTypeStruct $$uint $$vector<T.Element,4>;
+
+        %sparseResult:%sparseResultType = OpImageSparseGather $sampler $location $component;
+
+        %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+        OpStore &status %residentCode;
+        result:$$vector<T.Element,4> = OpCompositeExtract %sparseResult 1;
+    };
 }
 
 __generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
