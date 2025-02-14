@@ -2,6 +2,7 @@
 
 #include "slang-ir-clone.h"
 #include "slang-ir-insts.h"
+#include "slang-ir.h"
 
 namespace Slang
 {
@@ -58,6 +59,7 @@ void buildEntryPointReferenceGraph(
         {
         case kIROp_GlobalParam:
         case kIROp_SPIRVAsmOperandBuiltinVar:
+        case kIROp_Return:
             registerEntryPointReference(entryPoint, inst);
             break;
         case kIROp_Block:

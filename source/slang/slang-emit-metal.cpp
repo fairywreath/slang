@@ -1462,6 +1462,7 @@ void MetalSourceEmitter::emitSimpleFuncParamImpl(IRParam* param)
 {
     Super::emitSimpleFuncParamImpl(param);
     emitFuncParamLayoutImpl(param);
+    maybeEmitSystemSemantic(param);
 }
 
 void MetalSourceEmitter::emitPostDeclarationAttributesForType(IRInst* type)
