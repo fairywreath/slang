@@ -15041,7 +15041,7 @@ __glsl_extension(GL_KHR_shader_subgroup_basic)
 __spirv_version(1.3)
 [NonUniformReturn]
 [ForceInline]
-[require(cuda_glsl_hlsl_spirv_wgsl, subgroup_basic)]
+[require(cuda_glsl_hlsl_metal_spirv_wgsl, subgroup_basic)]
 uint WaveGetLaneCount()
 {
     __target_switch
@@ -15055,6 +15055,7 @@ uint WaveGetLaneCount()
             OpCapability GroupNonUniform;
             result:$$uint = OpLoad builtin(SubgroupSize:uint)
         };
+    case metal:
     case wgsl:
         return __getTargetBuiltin("SV_WaveLaneCount");
     }
@@ -15064,7 +15065,8 @@ uint WaveGetLaneCount()
 __glsl_extension(GL_KHR_shader_subgroup_basic)
 __spirv_version(1.3)
 [NonUniformReturn]
-[require(cuda_glsl_hlsl_spirv_wgsl, subgroup_basic)]
+[ForceInline]
+[require(cuda_glsl_hlsl_metal_spirv_wgsl, subgroup_basic)]
 uint WaveGetLaneIndex()
 {
     __target_switch
@@ -15078,6 +15080,7 @@ uint WaveGetLaneIndex()
             OpCapability GroupNonUniform;
             result:$$uint = OpLoad builtin(SubgroupLocalInvocationId:uint)
         };
+    case metal:
     case wgsl:
         return __getTargetBuiltin("SV_WaveLaneIndex");
     }

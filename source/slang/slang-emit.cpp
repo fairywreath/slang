@@ -9,6 +9,7 @@
 #include "../core/slang-performance-profiler.h"
 #include "../core/slang-type-text-util.h"
 #include "../core/slang-writer.h"
+#include "slang-compiler.h"
 #include "slang-emit-c-like.h"
 #include "slang-emit-cpp.h"
 #include "slang-emit-cuda.h"
@@ -56,6 +57,7 @@
 #include "slang-ir-legalize-global-values.h"
 #include "slang-ir-legalize-image-subscript.h"
 #include "slang-ir-legalize-mesh-outputs.h"
+#include "slang-ir-legalize-target-builtin.h"
 #include "slang-ir-legalize-uniform-buffer-load.h"
 #include "slang-ir-legalize-varying-params.h"
 #include "slang-ir-legalize-vector-types.h"
@@ -744,6 +746,18 @@ Result linkAndOptimizeIR(
     case CodeGenTarget::HostCPPSource:
     case CodeGenTarget::CPPSource:
     case CodeGenTarget::CUDASource:
+        break;
+    }
+
+    switch (target)
+    {
+    case CodeGenTarget::Metal:
+    case CodeGenTarget::MetalLib:
+    case CodeGenTarget::MetalLibAssembly:
+    case CodeGenTarget::WGSL:
+        legalizeTargetBuiltins(irModule, sink);
+        break;
+    default:
         break;
     }
 

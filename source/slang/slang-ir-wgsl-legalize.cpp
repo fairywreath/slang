@@ -217,36 +217,36 @@ void legalizeIRForWGSL(IRModule* module, DiagnosticSink* sink)
         entryPoints.add(info);
     }
 
-    IRBuilder builder(module);
-    Dictionary<IRInst*, HashSet<IRFunc*>> entryPointReferenceGraph;
-    buildEntryPointReferenceGraph(entryPointReferenceGraph, module);
-    for (auto inst : module->getGlobalInsts())
-    {
-        if (auto getTargetBuiltinInst = as<IRGetTargetBuiltin>(inst))
-        {
-            // const auto referencingEntryPoints =
-            //     getReferencingEntryPoints(entryPointReferenceGraph, getTargetBuiltinInst);
-            // if (referencingEntryPoints == nullptr)
-            //     continue;
-
-            // for (auto entryPoint : *referencingEntryPoints)
-            for (auto entryPointInfo : entryPoints)
-            {
-                auto entryPoint = entryPointInfo.entryPointFunc;
-
-                builder.setInsertBefore(entryPoint->getFirstBlock()->getFirstOrdinaryInst());
-                auto param = builder.emitParam(builder.getUIntType());
-                builder.addSemanticDecoration(param, getTargetBuiltinInst->getBuiltinKind());
-                builder.addNameHintDecoration(param, getTargetBuiltinInst->getBuiltinKind());
-
-                builder.emitStore(getTargetBuiltinInst, param);
-
-                fixUpFuncType(entryPoint);
-            }
-
-            // getTargetBuiltinInst->removeAndDeallocate();
-        }
-    }
+    // IRBuilder builder(module);
+    // Dictionary<IRInst*, HashSet<IRFunc*>> entryPointReferenceGraph;
+    // buildEntryPointReferenceGraph(entryPointReferenceGraph, module);
+    // for (auto inst : module->getGlobalInsts())
+    // {
+    //     if (auto getTargetBuiltinInst = as<IRGetTargetBuiltin>(inst))
+    //     {
+    //         // const auto referencingEntryPoints =
+    //         //     getReferencingEntryPoints(entryPointReferenceGraph, getTargetBuiltinInst);
+    //         // if (referencingEntryPoints == nullptr)
+    //         //     continue;
+    //
+    //         // for (auto entryPoint : *referencingEntryPoints)
+    //         for (auto entryPointInfo : entryPoints)
+    //         {
+    //             auto entryPoint = entryPointInfo.entryPointFunc;
+    //
+    //             builder.setInsertBefore(entryPoint->getFirstBlock()->getFirstOrdinaryInst());
+    //             auto param = builder.emitParam(builder.getUIntType());
+    //             builder.addSemanticDecoration(param, getTargetBuiltinInst->getBuiltinKind());
+    //             builder.addNameHintDecoration(param, getTargetBuiltinInst->getBuiltinKind());
+    //
+    //             builder.emitStore(getTargetBuiltinInst, param);
+    //
+    //             fixUpFuncType(entryPoint);
+    //         }
+    //
+    //         // getTargetBuiltinInst->removeAndDeallocate();
+    //     }
+    // }
 
     legalizeEntryPointVaryingParamsForWGSL(module, sink, entryPoints);
 
