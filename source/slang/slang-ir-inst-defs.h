@@ -477,6 +477,8 @@ INST(GetNativePtr, getNativePtr, 1, 0)
 // Get a write reference to a managed ptr var (operand must be Ptr<ComPtr<T>> or Ptr<RefPtr<T>>).
 INST(GetManagedPtrWriteRef, getManagedPtrWriteRef, 1, 0)
 
+INST(GetTargetBuiltin, GetTargetbuiltin, 1, HOISTABLE)
+
 // Attach a managedPtr var to a NativePtr without changing its ref count.
 INST(ManagedPtrAttach, ManagedPtrAttach, 1, 0)
 

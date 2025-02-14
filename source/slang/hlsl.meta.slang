@@ -6,6 +6,9 @@ typedef uint UINT;
 __intrinsic_op($(kIROp_RequireGLSLExtension))
 void __requireGLSLExtension(String extensionName);
 
+__intrinsic_op($(kIROp_GetTargetBuiltin))
+uint __getTargetBuiltin(String builtinKind);
+
 //@public:
 /// Represents an interface for buffer data layout.
 /// This interface is used as a base for defining specific data layouts for buffers.
@@ -15037,7 +15040,8 @@ uint WaveActiveCountBits(bool value)
 __glsl_extension(GL_KHR_shader_subgroup_basic)
 __spirv_version(1.3)
 [NonUniformReturn]
-[require(cuda_glsl_hlsl_spirv, subgroup_basic)]
+[ForceInline]
+[require(cuda_glsl_hlsl_spirv_wgsl, subgroup_basic)]
 uint WaveGetLaneCount()
 {
     __target_switch
@@ -15051,6 +15055,8 @@ uint WaveGetLaneCount()
             OpCapability GroupNonUniform;
             result:$$uint = OpLoad builtin(SubgroupSize:uint)
         };
+    case wgsl:
+        return __getTargetBuiltin("SV_WaveLaneCount");
     }
 }
 
@@ -15058,7 +15064,7 @@ uint WaveGetLaneCount()
 __glsl_extension(GL_KHR_shader_subgroup_basic)
 __spirv_version(1.3)
 [NonUniformReturn]
-[require(cuda_glsl_hlsl_spirv, subgroup_basic)]
+[require(cuda_glsl_hlsl_spirv_wgsl, subgroup_basic)]
 uint WaveGetLaneIndex()
 {
     __target_switch
@@ -15072,6 +15078,8 @@ uint WaveGetLaneIndex()
             OpCapability GroupNonUniform;
             result:$$uint = OpLoad builtin(SubgroupLocalInvocationId:uint)
         };
+    case wgsl:
+        return __getTargetBuiltin("SV_WaveLaneIndex");
     }
 }
 
