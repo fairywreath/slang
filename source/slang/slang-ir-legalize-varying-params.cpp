@@ -3088,6 +3088,7 @@ protected:
                 break;
             }
         case SystemValueSemanticName::DispatchThreadID:
+        case SystemValueSemanticName::WaveLaneIndex:
             {
                 result.systemValueName = toSlice("thread_position_in_grid");
                 result.permittedTypes.add(builder.getVectorType(
@@ -3234,12 +3235,12 @@ protected:
                 result.permittedTypes.add(builder.getUIntType());
                 break;
             }
-        case SystemValueSemanticName::WaveLaneIndex:
-            {
-                result.systemValueName = toSlice("thread_index_in_simdgroup");
-                result.permittedTypes.add(builder.getUIntType());
-                break;
-            }
+        // case SystemValueSemanticName::WaveLaneIndex:
+        //     {
+        //         result.systemValueName = toSlice("thread_index_in_simdgroup");
+        //         result.permittedTypes.add(builder.getUIntType());
+        //         break;
+        //     }
         default:
             m_sink->diagnose(
                 parentVar,

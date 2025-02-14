@@ -755,7 +755,16 @@ Result linkAndOptimizeIR(
     case CodeGenTarget::MetalLib:
     case CodeGenTarget::MetalLibAssembly:
     case CodeGenTarget::WGSL:
-        legalizeTargetBuiltins(irModule, sink);
+        {
+            legalizeTargetBuiltins(irModule, sink);
+            // DiagnosticSinkWriter writer(codeGenContext->getSink());
+            // dumpIR(
+            //     irModule,
+            //     codeGenContext->getIRDumpOptions(),
+            //     "FW IR DUMP",
+            //     codeGenContext->getSourceManager(),
+            //     &writer);
+        }
         break;
     default:
         break;
