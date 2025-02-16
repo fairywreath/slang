@@ -9,9 +9,9 @@ void __requireGLSLExtension(String extensionName);
 __intrinsic_op($(kIROp_RequireWGSLExtension))
 void __requireWGSLExtension(String extensionName);
 
-/// Built-in values or system value semantics represented as in/out global variables
-/// This allows the built-ins to be used arbitrarily from a global scope without being
-/// explicitly passed as entry parameters.
+/// Built-in values or system value semantics represented as in/out global variables.
+/// This allows the built-ins to be arbitrarily used from a global scope without being
+/// explicitly passed as entry point parameters.
 in uint __builtinWaveLaneIndex : SV_WaveLaneIndex;
 in uint __builtinWaveLaneCount : SV_WaveLaneCount;
 
