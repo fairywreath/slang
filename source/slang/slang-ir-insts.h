@@ -2610,7 +2610,10 @@ struct IRGetAddress : IRInst
 struct IRGetTargetBuiltin : IRInst
 {
     IR_LEAF_ISA(GetTargetBuiltin);
-    UnownedStringSlice getBuiltinKind() { return as<IRStringLit>(getOperand(0))->getStringSlice(); }
+    UnownedStringSlice getTargetBuiltinName()
+    {
+        return as<IRStringLit>(getOperand(0))->getStringSlice();
+    }
 };
 
 struct IRImageSubscript : IRInst
@@ -3479,6 +3482,15 @@ struct IRRequirePrelude : IRInst
 struct IRRequireGLSLExtension : IRInst
 {
     IR_LEAF_ISA(RequireGLSLExtension)
+    UnownedStringSlice getExtensionName()
+    {
+        return as<IRStringLit>(getOperand(0))->getStringSlice();
+    }
+};
+
+struct IRRequireWGSLExtension : IRInst
+{
+    IR_LEAF_ISA(RequireWGSLExtension)
     UnownedStringSlice getExtensionName()
     {
         return as<IRStringLit>(getOperand(0))->getStringSlice();

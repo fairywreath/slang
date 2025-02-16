@@ -54,10 +54,10 @@
 #include "slang-ir-layout.h"
 #include "slang-ir-legalize-array-return-type.h"
 #include "slang-ir-legalize-binary-operator.h"
+#include "slang-ir-legalize-get-target-builtin.h"
 #include "slang-ir-legalize-global-values.h"
 #include "slang-ir-legalize-image-subscript.h"
 #include "slang-ir-legalize-mesh-outputs.h"
-#include "slang-ir-legalize-target-builtin.h"
 #include "slang-ir-legalize-uniform-buffer-load.h"
 #include "slang-ir-legalize-varying-params.h"
 #include "slang-ir-legalize-vector-types.h"
@@ -755,16 +755,7 @@ Result linkAndOptimizeIR(
     case CodeGenTarget::MetalLib:
     case CodeGenTarget::MetalLibAssembly:
     case CodeGenTarget::WGSL:
-        {
-            legalizeTargetBuiltins(irModule, sink);
-            // DiagnosticSinkWriter writer(codeGenContext->getSink());
-            // dumpIR(
-            //     irModule,
-            //     codeGenContext->getIRDumpOptions(),
-            //     "FW IR DUMP",
-            //     codeGenContext->getSourceManager(),
-            //     &writer);
-        }
+        legalizeGetTargetBuiltins(irModule);
         break;
     default:
         break;
@@ -1419,6 +1410,7 @@ Result linkAndOptimizeIR(
         resolveTextureFormat(irModule);
         break;
     }
+
 
     // For GLSL only, we will need to perform "legalization" of
     // the entry point and any entry-point parameters.

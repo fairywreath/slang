@@ -6,8 +6,11 @@ typedef uint UINT;
 __intrinsic_op($(kIROp_RequireGLSLExtension))
 void __requireGLSLExtension(String extensionName);
 
+__intrinsic_op($(kIROp_RequireWGSLExtension))
+void __requireWGSLExtension(String extensionName);
+
 __intrinsic_op($(kIROp_GetTargetBuiltin))
-uint __getTargetBuiltin(String builtinKind);
+uint __getTargetBuiltin(String builtinName);
 
 //@public:
 /// Represents an interface for buffer data layout.
@@ -15056,8 +15059,10 @@ uint WaveGetLaneCount()
             result:$$uint = OpLoad builtin(SubgroupSize:uint)
         };
     case metal:
+        return __getTargetBuiltin("threads_per_simdgroup");
     case wgsl:
-        return __getTargetBuiltin("SV_WaveLaneCount");
+        __requireWGSLExtension("subgroups");
+        return __getTargetBuiltin("subgroup_size");
     }
 }
 
@@ -15081,8 +15086,10 @@ uint WaveGetLaneIndex()
             result:$$uint = OpLoad builtin(SubgroupLocalInvocationId:uint)
         };
     case metal:
+        return __getTargetBuiltin("thread_index_in_simdgroup");
     case wgsl:
-        return __getTargetBuiltin("SV_WaveLaneIndex");
+        __requireWGSLExtension("subgroups");
+        return __getTargetBuiltin("subgroup_invocation_id");
     }
 }
 
