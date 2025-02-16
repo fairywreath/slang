@@ -3043,7 +3043,6 @@ void CLikeSourceEmitter::defaultEmitInstExpr(IRInst* inst, const EmitOpInfo& inO
             break;
         }
     case kIROp_RequireGLSLExtension:
-    case kIROp_GetTargetBuiltin:
         {
             break; // should already have set requirement; case covered for empty intrinsic block
         }

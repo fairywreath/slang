@@ -9,9 +9,9 @@ void __requireGLSLExtension(String extensionName);
 __intrinsic_op($(kIROp_RequireWGSLExtension))
 void __requireWGSLExtension(String extensionName);
 
-__intrinsic_op($(kIROp_GetTargetBuiltin))
-uint __getTargetBuiltin(String builtinName);
-
+/// Built-in values or system value semantics represented as in/out global variables
+/// This allows the built-ins to be used arbitrarily from a global scope without being
+/// explicitly passed as entry parameters.
 in uint __builtinWaveLaneIndex : SV_WaveLaneIndex;
 in uint __builtinWaveLaneCount : SV_WaveLaneCount;
 
@@ -15045,7 +15045,6 @@ uint WaveActiveCountBits(bool value)
 /// @category wave
 __glsl_extension(GL_KHR_shader_subgroup_basic)
 __spirv_version(1.3)
-__wgsl_extension(subgroups)
 [NonUniformReturn]
 [ForceInline]
 [require(cuda_glsl_hlsl_metal_spirv_wgsl, subgroup_basic)]
@@ -15063,11 +15062,9 @@ uint WaveGetLaneCount()
             result:$$uint = OpLoad builtin(SubgroupSize:uint)
         };
     case metal:
-        // return __getTargetBuiltin("threads_per_simdgroup");
         return __builtinWaveLaneCount;
     case wgsl:
-        // __requireWGSLExtension("subgroups");
-        // return __getTargetBuiltin("subgroup_size");
+        __requireWGSLExtension("subgroups");
         return __builtinWaveLaneCount;
     }
 }
@@ -15075,7 +15072,6 @@ uint WaveGetLaneCount()
 /// @category wave
 __glsl_extension(GL_KHR_shader_subgroup_basic)
 __spirv_version(1.3)
-__wgsl_extension(subgroups)
 [NonUniformReturn]
 [ForceInline]
 [require(cuda_glsl_hlsl_metal_spirv_wgsl, subgroup_basic)]
@@ -15093,11 +15089,9 @@ uint WaveGetLaneIndex()
             result:$$uint = OpLoad builtin(SubgroupLocalInvocationId:uint)
         };
     case metal:
-        // return __getTargetBuiltin("thread_index_in_simdgroup");
         return __builtinWaveLaneIndex;
     case wgsl:
-        // __requireWGSLExtension("subgroups");
-        // return __getTargetBuiltin("subgroup_invocation_id");
+        __requireWGSLExtension("subgroups");
         return __builtinWaveLaneIndex;
     }
 }

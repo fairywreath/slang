@@ -365,7 +365,6 @@ struct AddressSpaceContext : public AddressSpaceSpecializationContext
             if (addrSpace != AddressSpace::Generic)
             {
                 mapInstToAddrSpace[globalInst] = addrSpace;
-                auto addrSpace2 = getLeafInstAddressSpace(globalInst);
             }
             if (auto func = as<IRFunc>(globalInst))
             {

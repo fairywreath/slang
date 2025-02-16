@@ -9,7 +9,6 @@
 #include "../core/slang-performance-profiler.h"
 #include "../core/slang-type-text-util.h"
 #include "../core/slang-writer.h"
-#include "slang-compiler.h"
 #include "slang-emit-c-like.h"
 #include "slang-emit-cpp.h"
 #include "slang-emit-cuda.h"
@@ -54,7 +53,6 @@
 #include "slang-ir-layout.h"
 #include "slang-ir-legalize-array-return-type.h"
 #include "slang-ir-legalize-binary-operator.h"
-#include "slang-ir-legalize-get-target-builtin.h"
 #include "slang-ir-legalize-global-values.h"
 #include "slang-ir-legalize-image-subscript.h"
 #include "slang-ir-legalize-mesh-outputs.h"
@@ -749,18 +747,6 @@ Result linkAndOptimizeIR(
         break;
     }
 
-    switch (target)
-    {
-    case CodeGenTarget::Metal:
-    case CodeGenTarget::MetalLib:
-    case CodeGenTarget::MetalLibAssembly:
-    case CodeGenTarget::WGSL:
-        legalizeGetTargetBuiltins(irModule);
-        break;
-    default:
-        break;
-    }
-
     if (requiredLoweringPassSet.optionalType)
         lowerOptionalType(irModule, sink);
 
@@ -1410,7 +1396,6 @@ Result linkAndOptimizeIR(
         resolveTextureFormat(irModule);
         break;
     }
-
 
     // For GLSL only, we will need to perform "legalization" of
     // the entry point and any entry-point parameters.

@@ -3773,9 +3773,8 @@ protected:
 
         case SystemValueSemanticName::GroupIndex:
             {
-                // result.systemValueName = toSlice("local_invocation_index");
-                // result.permittedTypes.add(builder.getUIntType());
-                result.isUnsupported = true;
+                result.systemValueName = toSlice("local_invocation_index");
+                result.permittedTypes.add(builder.getUIntType());
             }
             break;
 

@@ -2300,7 +2300,6 @@ void addVarDecorations(IRGenContext* context, IRInst* inst, Decl* decl)
         else if (as<OutModifier>(mod))
         {
             builder->addSimpleDecoration<IRGlobalOutputDecoration>(inst);
-            // builder->addSimpleDecoration<IRGlobalInputDecoration>(inst);
         }
         else if (as<InModifier>(mod))
         {

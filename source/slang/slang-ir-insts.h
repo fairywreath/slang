@@ -2607,15 +2607,6 @@ struct IRGetAddress : IRInst
     IR_LEAF_ISA(GetAddr);
 };
 
-struct IRGetTargetBuiltin : IRInst
-{
-    IR_LEAF_ISA(GetTargetBuiltin);
-    UnownedStringSlice getTargetBuiltinName()
-    {
-        return as<IRStringLit>(getOperand(0))->getStringSlice();
-    }
-};
-
 struct IRImageSubscript : IRInst
 {
     IR_LEAF_ISA(ImageSubscript);

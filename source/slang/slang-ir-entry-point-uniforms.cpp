@@ -252,7 +252,7 @@ struct CollectEntryPointUniformParams : PerEntryPointPass
             // information when we are in a release build.
             //
             auto layoutDecoration = param->findDecoration<IRLayoutDecoration>();
-            // SLANG_ASSERT(layoutDecoration);
+            SLANG_ASSERT(layoutDecoration);
             if (!layoutDecoration)
                 continue;
             auto paramLayout = as<IRVarLayout>(layoutDecoration->getLayout());
@@ -467,7 +467,7 @@ struct MoveEntryPointUniformParametersToGlobalScope : PerEntryPointPass
             // information when we are in a release build.
             //
             auto layoutDecoration = param->findDecoration<IRLayoutDecoration>();
-            // SLANG_ASSERT(layoutDecoration);
+            SLANG_ASSERT(layoutDecoration);
             if (!layoutDecoration)
                 continue;
             auto paramLayout = as<IRVarLayout>(layoutDecoration->getLayout());
