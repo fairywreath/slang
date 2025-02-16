@@ -207,11 +207,11 @@ void MetalSourceEmitter::emitFuncParamLayoutImpl(IRInst* param)
             break;
         }
     }
-    // if (!maybeEmitSystemSemantic(param))
-    // {
-    //     if (auto sysSemanticAttr = layout->findSystemValueSemanticAttr())
-    //         _emitUserSemantic(sysSemanticAttr->getName(), sysSemanticAttr->getIndex());
-    // }
+    if (!maybeEmitSystemSemantic(param))
+    {
+        if (auto sysSemanticAttr = layout->findSystemValueSemanticAttr())
+            _emitUserSemantic(sysSemanticAttr->getName(), sysSemanticAttr->getIndex());
+    }
 }
 
 void MetalSourceEmitter::emitParameterGroupImpl(
@@ -1462,7 +1462,6 @@ void MetalSourceEmitter::emitSimpleFuncParamImpl(IRParam* param)
 {
     Super::emitSimpleFuncParamImpl(param);
     emitFuncParamLayoutImpl(param);
-    maybeEmitSystemSemantic(param);
 }
 
 void MetalSourceEmitter::emitPostDeclarationAttributesForType(IRInst* type)

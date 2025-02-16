@@ -719,12 +719,6 @@ void WGSLSourceEmitter::emitLayoutQualifiersImpl(IRVarLayout* layout)
 
 static bool isStaticConst(IRInst* inst)
 {
-    // switch (inst->getOp())
-    // {
-    // case kIROp_GetTargetBuiltin:
-    //     return false;
-    // }
-
     if (inst->getParent()->getOp() == kIROp_Module)
     {
         return true;
@@ -797,10 +791,7 @@ void WGSLSourceEmitter::emitVarKeywordImpl(IRType* type, IRInst* varDecl)
         m_writer->emit("storage, read");
         m_writer->emit(">");
     }
-    else if (
-        varDecl->getOp() == kIROp_GlobalVar
-        // || varDecl->getOp() == kIROp_GetTargetBuiltin
-    )
+    else if (varDecl->getOp() == kIROp_GlobalVar)
     {
         // Global ("module-scope") non-handle variables need to specify storage space
 

@@ -12,6 +12,9 @@ void __requireWGSLExtension(String extensionName);
 __intrinsic_op($(kIROp_GetTargetBuiltin))
 uint __getTargetBuiltin(String builtinName);
 
+in uint __builtinWaveLaneIndex : SV_WaveLaneIndex;
+in uint __builtinWaveLaneCount : SV_WaveLaneCount;
+
 //@public:
 /// Represents an interface for buffer data layout.
 /// This interface is used as a base for defining specific data layouts for buffers.
@@ -15042,6 +15045,7 @@ uint WaveActiveCountBits(bool value)
 /// @category wave
 __glsl_extension(GL_KHR_shader_subgroup_basic)
 __spirv_version(1.3)
+__wgsl_extension(subgroups)
 [NonUniformReturn]
 [ForceInline]
 [require(cuda_glsl_hlsl_metal_spirv_wgsl, subgroup_basic)]
@@ -15059,16 +15063,19 @@ uint WaveGetLaneCount()
             result:$$uint = OpLoad builtin(SubgroupSize:uint)
         };
     case metal:
-        return __getTargetBuiltin("threads_per_simdgroup");
+        // return __getTargetBuiltin("threads_per_simdgroup");
+        return __builtinWaveLaneCount;
     case wgsl:
-        __requireWGSLExtension("subgroups");
-        return __getTargetBuiltin("subgroup_size");
+        // __requireWGSLExtension("subgroups");
+        // return __getTargetBuiltin("subgroup_size");
+        return __builtinWaveLaneCount;
     }
 }
 
 /// @category wave
 __glsl_extension(GL_KHR_shader_subgroup_basic)
 __spirv_version(1.3)
+__wgsl_extension(subgroups)
 [NonUniformReturn]
 [ForceInline]
 [require(cuda_glsl_hlsl_metal_spirv_wgsl, subgroup_basic)]
@@ -15086,10 +15093,12 @@ uint WaveGetLaneIndex()
             result:$$uint = OpLoad builtin(SubgroupLocalInvocationId:uint)
         };
     case metal:
-        return __getTargetBuiltin("thread_index_in_simdgroup");
+        // return __getTargetBuiltin("thread_index_in_simdgroup");
+        return __builtinWaveLaneIndex;
     case wgsl:
-        __requireWGSLExtension("subgroups");
-        return __getTargetBuiltin("subgroup_invocation_id");
+        // __requireWGSLExtension("subgroups");
+        // return __getTargetBuiltin("subgroup_invocation_id");
+        return __builtinWaveLaneIndex;
     }
 }
 

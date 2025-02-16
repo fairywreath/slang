@@ -104,13 +104,13 @@ struct GlobalVarTranslationContext
 
                 IRVarLayout::Builder varLayoutBuilder(&builder, fieldTypeLayout);
                 varLayoutBuilder.setStage(entryPointDecor->getProfile().getStage());
-                if (auto semanticDecor = input->findDecoration<IRSemanticDecoration>())
-                {
-                    varLayoutBuilder.setSystemValueSemantic(
-                        semanticDecor->getSemanticName(),
-                        semanticDecor->getSemanticIndex());
-                }
-                else
+                // if (auto semanticDecor = input->findDecoration<IRSemanticDecoration>())
+                // {
+                //     varLayoutBuilder.setSystemValueSemantic(
+                //         semanticDecor->getSemanticName(),
+                //         semanticDecor->getSemanticIndex());
+                // }
+                // else
                 {
                     if (!hasExistingLayout)
                     {
