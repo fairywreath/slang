@@ -1426,7 +1426,7 @@ extension _Texture<T,Shape,isArray,isMS,sampleCount,0,isShadow,1,format>
                 OpCapability SparseResidency;
                 %sparseResultType = OpTypeStruct $$uint $$float;
 
-                %sparseResult:%sparseResultType = OpImageSampleDrefExplicitLod $this $location $compareValue Lod|ConstOffset $level $offset;
+                %sparseResult:%sparseResultType = OpImageSparseSampleDrefExplicitLod $this $location $compareValue Lod|ConstOffset $level $offset;
 
                 %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
                 OpStore &status %residentCode;
@@ -1534,10 +1534,11 @@ extension _Texture<T,Shape,isArray,isMS,sampleCount,0,isShadow,1,format>
         case spirv:
             return spirv_asm
             {
+                OpCapability MinLod;
                 OpCapability SparseResidency;
                 %sparseResultType = OpTypeStruct $$uint __sampledType(T);
 
-                %sparseResult:%sparseResultType = OpImageSampleExplicitLod $this $location Grad|ConstOffset|MinLod $gradX $gradY $offset $lodClamp;
+                %sparseResult:%sparseResultType = OpImageSparseSampleExplicitLod $this $location Grad|ConstOffset|MinLod $gradX $gradY $offset $lodClamp;
                 %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
                 %sampled:__sampledType(T) = OpCompositeExtract %sparseResult 1; 
 
