@@ -1688,6 +1688,11 @@ class RequireFullQuadsAttribute : public Attribute
     SLANG_AST_CLASS(RequireFullQuadsAttribute)
 };
 
+class WaveOpsIncludeHelperLanesAttribute : public Attribute
+{
+    SLANG_AST_CLASS(WaveOpsIncludeHelperLanesAttribute)
+};
+
 /// A `[payload]` attribute indicates that a `struct` type will be used as
 /// a ray payload for `TraceRay()` calls, and thus also as input/output
 /// for shaders in the ray tracing pipeline that might be invoked for

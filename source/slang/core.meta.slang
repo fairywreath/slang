@@ -4239,10 +4239,15 @@ attribute_syntax [DerivativeGroupQuad] : DerivativeGroupQuadAttribute;
 __attributeTarget(FuncDecl)
 attribute_syntax [DerivativeGroupLinear] : DerivativeGroupLinearAttribute;
 
-/// Emits `MaximallyReconvergesKHR` execution mode when producing SPIR-V.
+/// Emits `MaximallyReconvergesKHR` execution mode for SPIR-V.
 /// This attribute has no effect on other targets.
 __attributeTarget(FuncDecl)
 attribute_syntax [MaximallyReconverges] : MaximallyReconvergesAttribute;
+
+/// Emits `WaveOpsIncludeHelperLanes` attribute for HLSL and `MaximallyReconvergesKHR` execution mode for SPIR-V.
+/// This attribute is only valid in fragment shaders has no effect on other targets.
+__attributeTarget(FuncDecl)
+attribute_syntax [WaveOpsIncludeHelperLanes] : WaveOpsIncludeHelperLanesAttribute;
 
 /// Emits `QuadDerivativesKHR` execution mode when producing SPIR-V.
 /// This attribute has no effect on other targets.

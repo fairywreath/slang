@@ -1,5 +1,6 @@
 //TEST:SIMPLE(filecheck=CHECK_SPIRV): -target spirv -fvk-use-entrypoint-name
 //TEST:SIMPLE(filecheck=CHECK_GLSL): -target glsl -fvk-use-entrypoint-name
+//TEST:SIMPLE(filecheck=CHECK_HLSL): -target hlsl -fvk-use-entrypoint-name
 
 // 
 // Check that SPIRV quad control execution modes and GLSL layout/attribute decorations are only 

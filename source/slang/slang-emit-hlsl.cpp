@@ -3,6 +3,7 @@
 
 #include "../core/slang-writer.h"
 #include "slang-emit-source-writer.h"
+#include "slang-ir-insts.h"
 #include "slang-ir-util.h"
 #include "slang-mangled-lexer.h"
 
@@ -569,6 +570,10 @@ void HLSLSourceEmitter::emitEntryPointAttributesImpl(
             if (irFunc->findDecoration<IREarlyDepthStencilDecoration>())
             {
                 m_writer->emit("[earlydepthstencil]\n");
+            }
+            if (irFunc->findDecoration<IRWaveOpsIncludeHelperLanesDecoration>())
+            {
+                m_writer->emit("[WaveOpsIncludeHelperLanes]\n");
             }
             break;
         }
@@ -1930,6 +1935,5 @@ void HLSLSourceEmitter::emitGlobalInstImpl(IRInst* inst)
 
     Super::emitGlobalInstImpl(inst);
 }
-
 
 } // namespace Slang

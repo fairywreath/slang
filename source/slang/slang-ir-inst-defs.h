@@ -980,6 +980,7 @@ INST_RANGE(BindingQuery, GetRegisterIndex, GetRegisterSpace)
     INST(MaximallyReconvergesDecoration, MaximallyReconverges, 0, 0)
     INST(QuadDerivativesDecoration, QuadDerivatives, 0, 0)
     INST(RequireFullQuadsDecoration, RequireFullQuads, 0, 0)
+    INST(WaveOpsIncludeHelperLanesDecoration, WaveOpsIncludeHelperLanes, 0, 0)
 
         // Marks a type to be non copyable, causing SSA pass to skip turning variables of the the type into SSA values.
     INST(NonCopyableTypeDecoration, nonCopyable, 0, 0)

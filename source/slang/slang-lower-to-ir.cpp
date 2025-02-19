@@ -5,6 +5,7 @@
 #include "../core/slang-hash.h"
 #include "../core/slang-performance-profiler.h"
 #include "../core/slang-random-generator.h"
+#include "slang-ast-modifier.h"
 #include "slang-check.h"
 #include "slang-ir-autodiff.h"
 #include "slang-ir-bit-field-accessors.h"
@@ -10578,6 +10579,10 @@ struct DeclLoweringVisitor : DeclVisitor<DeclLoweringVisitor, LoweredValInfo>
             else if (as<RequireFullQuadsAttribute>(modifier))
             {
                 getBuilder()->addSimpleDecoration<IRRequireFullQuadsDecoration>(irFunc);
+            }
+            else if (as<WaveOpsIncludeHelperLanesAttribute>(modifier))
+            {
+                getBuilder()->addSimpleDecoration<IRWaveOpsIncludeHelperLanesDecoration>(irFunc);
             }
             else if (as<NoRefInlineAttribute>(modifier))
             {
