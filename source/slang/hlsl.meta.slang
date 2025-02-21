@@ -24024,6 +24024,14 @@ T workgroupUniformLoad<T>(__ref T v)
 //
 
 //@hidden:
+
+[__readNone]
+[ForceInline]
+uint8_t __lsb_as_u8(uint32_t val)
+{
+    return uint8_t(val & 0xFFU);
+}
+
 [__readNone]
 [ForceInline]
 uint16_t __lsb_as_u16(uint32_t val)
@@ -24031,7 +24039,6 @@ uint16_t __lsb_as_u16(uint32_t val)
     return uint16_t(val & 0xFFU);
 }
 
-//@hidden:
 [__readNone]
 [ForceInline]
 uint32_t __lsb_as_u32(uint32_t val)
@@ -24039,7 +24046,6 @@ uint32_t __lsb_as_u32(uint32_t val)
     return (val & 0xFFU);
 }
 
-//@hidden:
 [__readNone]
 [ForceInline]
 int8_t __lsb_as_s8(uint32_t val)
@@ -24047,7 +24053,6 @@ int8_t __lsb_as_s8(uint32_t val)
     return int8_t(val & 0xFFU);
 }
 
-//@hidden:
 [__readNone]
 [ForceInline]
 int16_t __lsb_as_s16(uint32_t val)
@@ -24055,7 +24060,6 @@ int16_t __lsb_as_s16(uint32_t val)
     return int16_t(__lsb_as_s8(val));
 }
 
-//@hidden:
 [__readNone]
 [ForceInline]
 int32_t __lsb_as_s32(uint32_t val)
@@ -24063,7 +24067,6 @@ int32_t __lsb_as_s32(uint32_t val)
     return int32_t(__lsb_as_s8(val));
 }
 
-//@hidden:
 [__readNone]
 [ForceInline]
 uint32_t __lsb_clamp_u8_as_u32(int32_t val)
@@ -24071,7 +24074,6 @@ uint32_t __lsb_clamp_u8_as_u32(int32_t val)
     return clamp(val, 0, 255);
 }
 
-//@hidden:
 [__readNone]
 [ForceInline]
 uint32_t __lsb_clamp_s8_as_u32(int32_t val)
@@ -24079,97 +24081,506 @@ uint32_t __lsb_clamp_s8_as_u32(int32_t val)
     return (uint32_t(clamp(val, -128, 127)) & 0xFFU);
 }
 
+// Work-graphs
+
 //@public:
-/// Unpack 4 signed 8-bit values into a vector of 16 bit integers.
+/// read-only input to Broadcasting launch node.
+__generic<T>
+//TODO: DispatchNodeInputRecord should be available only for broadcasting node shader.
+//[require(broadcasting_node)]
+[require(spirv)]
+struct DispatchNodeInputRecord
+{
+    /// Provide an access to a record object that only holds a single record.
+    NodePayloadPtr<T> Get()
+    {
+        int index = 0;
+        __target_switch
+        {
+        case spirv:
+            return spirv_asm
+            {
+                %in_payload_t = OpTypeNodePayloadArrayAMDX $$T;
+                %in_payload_ptr_t = OpTypePointer NodePayloadAMDX %in_payload_t;
+                %var = OpVariable %in_payload_ptr_t NodePayloadAMDX;
+                result : $$NodePayloadPtr<T> = OpAccessChain %var $index;
+            };
+        }
+    }
+};
+
+
+// @hidden:
+
+[__readNone]
+[ForceInline]
+float __unpackUnorm1x8(uint packedVal)
+{
+    return float(__lsb_as_u8(packedVal)) / 255.0;
+}
+
+[__readNone]
+[ForceInline]
+float __unpackSnorm1x8(uint packedVal)
+{
+    return max(float(__lsb_as_s8(packedVal)) / 127.0, -1.0);
+}
+
+[__readNone]
+[ForceInline]
+float __unpackUnorm1x16(uint packedVal)
+{
+    return float(__lsb_as_u16(packedVal)) / 65535.0;
+}
+
+[__readNone]
+[ForceInline]
+float __unpackSnorm1x16(uint packedVal)
+{
+    return max(float(__lsb_as_s16(packedVal)) / 32767.0, -1.0);
+}
+
+[__readNone]
+[ForceInline]
+float __unpackHalf1x16(uint packedVal)
+{
+    return asfloat(__lsb_as_s16(packedVal));
+}
+
+[__readNone]
+[ForceInline]
+uint __packUnorm1x8(float unpackedValue)
+{
+    return uint(round(clamp(unpackedValue, 0.0, 1.0) * 255.0));
+}
+
+[__readNone]
+[ForceInline]
+uint __packSnorm1x8(float unpackedValue)
+{
+    return uint(round(clamp(unpackedValue, -1.0, 1.0) * 127.0));
+}
+
+[__readNone]
+[ForceInline]
+uint __packUnorm1x16(float unpackedValue)
+{
+    return uint(round(clamp(unpackedValue, 0.0, 1.0) * 65535.0));
+}
+
+[__readNone]
+[ForceInline]
+uint __packSnorm1x16(float unpackedValue)
+{
+    return uint(round(clamp(unpackedValue, -1.0, 1.0) * 32767.0));
+}
+
+[__readNone]
+[ForceInline]
+uint __packHalf1x16(float unpackedValue)
+{
+    return asuint(half(unpackedValue));
+}
+
+// @public:
+
+//
+// Pack/Unpack Intrinsics
+//
+
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-int16_t4 unpack_s8s16(int8_t4_packed packed)
+float4 unpackUnorm4x8ToFloat(uint packedVal)
 {
     __target_switch
     {
-    case hlsl: __intrinsic_asm "unpack_s8s16";
+    case glsl: __intrinsic_asm "unpackUnorm4x8";
+    case metal: __intrinsic_asm "unpack_unorm4x8_to_float";
     case spirv: 
         return spirv_asm
         {
-            %s8Vec = OpBitcast $$vector<int8_t, 4> $packed;
-            result:$$vector<int16_t, 4> = OpSConvert %s8Vec
+            result:$$float4 = OpExtInst glsl450 UnpackUnorm4x8 $packedVal;
         };
+    case wgsl: __intrinsic_asm "unpack4x8unorm";
     default:
-        uint32_t packedValue = uint32_t(packed);
-        return int16_t4
+        return float4
         (
-            __lsb_as_s16(packedValue),
-            __lsb_as_s16(packedValue >> 8U),
-            __lsb_as_s16(packedValue >> 16U),
-            __lsb_as_s16(packedValue >> 24U),
+            __unpackUnorm1x8(packedVal),
+            __unpackUnorm1x8(packedVal >> 8U),
+            __unpackUnorm1x8(packedVal >> 16U),
+            __unpackUnorm1x8(packedVal >> 24U)
         );
     }
 }
 
-//@public:
-/// Unpack 4 unsigned 8-bit values into a vector of 16 bit integers.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-uint16_t4 unpack_u8u16(uint8_t4_packed packed)
+half4 unpackUnorm4x8ToHalf(uint packedVal)
 {
     __target_switch
     {
-    case hlsl: __intrinsic_asm "unpack_u8u16";
-    case spirv: 
-        return spirv_asm
-        {
-            %u8Vec = OpBitcast $$vector<uint8_t, 4> $packed;
-            result:$$vector<uint16_t, 4> = OpUConvert %u8Vec
-        };
+    case metal: __intrinsic_asm "unpack_unorm4x8_to_half";
     default:
-        uint32_t packedValue = uint32_t(packed);
-        return uint16_t4
+        float4 floatValues = unpackUnorm4x8ToFloat(packedVal);
+        return half4
         (
-            __lsb_as_u16(packedValue),
-            __lsb_as_u16(packedValue >> 8U),
-            __lsb_as_u16(packedValue >> 16U),
-            __lsb_as_u16(packedValue >> 24U),
+            half(floatValues.x),
+            half(floatValues.y),
+            half(floatValues.z),
+            half(floatValues.w),
         );
     }
 }
 
-//@public:
-/// Unpack 4 signed 8-bit values into a vector of 32 bit integers.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-int32_t4 unpack_s8s32(int8_t4_packed packed)
+float4 unpackSnorm4x8ToFloat(uint packedVal)
 {
     __target_switch
     {
-    case hlsl: __intrinsic_asm "unpack_s8s32";
-    case wgsl: __intrinsic_asm "unpack4xI8";
+    case glsl: __intrinsic_asm "unpackSnorm4x8";
+    case metal: __intrinsic_asm "unpack_snorm4x8_to_float";
     case spirv: 
         return spirv_asm
         {
-            %s8Vec = OpBitcast $$vector<int8_t, 4> $packed;
-            result:$$vector<int32_t, 4> = OpSConvert %s8Vec
+            result:$$float4 = OpExtInst glsl450 UnpackSnorm4x8 $packedVal;
         };
+    case wgsl: __intrinsic_asm "unpack4x8snorm";
     default:
-        uint32_t packedValue = uint32_t(packed);
-        return int32_t4
+        return float4
         (
-            __lsb_as_s32(packedValue),
-            __lsb_as_s32(packedValue >> 8U),
-            __lsb_as_s32(packedValue >> 16U),
-            __lsb_as_s32(packedValue >> 24U),
+            __unpackSnorm1x8(packedVal),
+            __unpackSnorm1x8(packedVal >> 8U),
+            __unpackSnorm1x8(packedVal >> 16U),
+            __unpackSnorm1x8(packedVal >> 24U)
         );
     }
 }
 
-//@public:
-/// Unpack 4 unsigned 8-bit values into a vector of 32 bit integers.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-uint32_t4 unpack_u8u32(uint8_t4_packed packed)
+half4 unpackSnorm4x8ToHalf(uint packedVal)
+{
+    __target_switch
+    {
+    case metal: __intrinsic_asm "unpack_snorm4x8_to_half";
+    default:
+        float4 floatValues = unpackSnorm4x8ToFloat(packedVal);
+        return half4
+        (
+            half(floatValues.x),
+            half(floatValues.y),
+            half(floatValues.z),
+            half(floatValues.w),
+        );
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+float2 unpackUnorm2x16ToFloat(uint packedVal)
+{
+    __target_switch
+    {
+    case glsl: __intrinsic_asm "unpackUnorm2x16";
+    case metal: __intrinsic_asm "unpack_unorm2x16_to_float";
+    case spirv: 
+        return spirv_asm
+        {
+            result:$$float2 = OpExtInst glsl450 UnpackUnorm2x16 $packedVal;
+        };
+    case wgsl: __intrinsic_asm "unpack2x16unorm";
+    default:
+        return float2
+        (
+            __unpackUnorm1x16(packedVal),
+            __unpackUnorm1x16(packedVal >> 8U),
+        );
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+half2 unpackUnorm2x16ToHalf(uint packedVal)
+{
+    __target_switch
+    {
+    case metal: __intrinsic_asm "unpack_unorm2x16_to_half";
+    default:
+        float2 floatValues = unpackUnorm2x16ToFloat(packedVal);
+        return half2
+        (
+            half(floatValues.x),
+            half(floatValues.y),
+        );
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+float2 unpackSnorm2x16ToFloat(uint packedVal)
+{
+    __target_switch
+    {
+    case glsl: __intrinsic_asm "unpackSnorm2x16";
+    case metal: __intrinsic_asm "unpack_snorm2x16_to_float";
+    case spirv: 
+        return spirv_asm
+        {
+            result:$$float2 = OpExtInst glsl450 UnpackSnorm2x16 $packedVal;
+        };
+    case wgsl: __intrinsic_asm "unpack2x16snorm";
+    default:
+        return float2
+        (
+            __unpackSnorm1x16(packedVal),
+            __unpackSnorm1x16(packedVal >> 8U),
+        );
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+half2 unpackSnorm2x16ToHalf(uint packedVal)
+{
+    __target_switch
+    {
+    case metal: __intrinsic_asm "unpack_snorm2x16_to_half";
+    default:
+        float2 floatValues = unpackSnorm2x16ToFloat(packedVal);
+        return half2
+        (
+            half(floatValues.x),
+            half(floatValues.y),
+        );
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+float2 unpackHalf2x16ToFloat(uint packedVal)
+{
+    __target_switch
+    {
+    case glsl: __intrinsic_asm "unpackHalf2x16";
+    case spirv: 
+        return spirv_asm
+        {
+            result:$$float2 = OpExtInst glsl450 UnpackHalf2x16 $packedVal;
+        };
+    case wgsl: __intrinsic_asm "unpack2x16float";
+    default:
+        return float2
+        (
+            __unpackHalf1x16(packedVal),
+            __unpackHalf1x16(packedVal >> 8U),
+        );
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+half2 unpackHalf2x16ToHalf(uint packedVal)
+{
+    float2 floatValues = unpackHalf2x16ToFloat(packedVal);
+    return half2
+    (
+        half(floatValues.x),
+        half(floatValues.y),
+    );
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packFloatToUnorm4x8(float4 unpackedValue)
+{
+    __target_switch
+    {
+    case glsl: __intrinsic_asm "packUnorm4x8";
+    case metal: __intrinsic_asm "pack_float_to_unorm4x8";
+    case spirv: 
+        return spirv_asm 
+        {
+            result:$$uint = OpExtInst glsl450 PackUnorm4x8 $unpackedValue
+        };
+    case wgsl: __intrinsic_asm "pack4x8unorm";
+    default:
+        return __packUnorm1x8(unpackedValue.x)
+               | (__packUnorm1x8(unpackedValue.y) << 8U)
+               | (__packUnorm1x8(unpackedValue.z) << 16U)
+               | (__packUnorm1x8(unpackedValue.y) << 24U);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packHalfToUnorm4x8(half4 unpackedValue)
+{
+    __target_switch
+    {
+    case metal: __intrinsic_asm "pack_half_to_unorm4x8";
+    default:
+        float4 floatValues = float4(unpackedValue.x, unpackedValue.y, unpackedValue.z, unpackedValue.w);
+        return packFloatToUnorm4x8(floatValues);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packFloatToSnorm4x8(float4 unpackedValue)
+{
+    __target_switch
+    {
+    case glsl: __intrinsic_asm "packSnorm4x8";
+    case metal: __intrinsic_asm "pack_float_to_snorm4x8";
+    case spirv: 
+        return spirv_asm 
+        {
+            result:$$uint = OpExtInst glsl450 PackSnorm4x8 $unpackedValue
+        };
+    case wgsl: __intrinsic_asm "pack4x8snorm";
+    default:
+        return __packSnorm1x8(unpackedValue.x)
+               | (__packSnorm1x8(unpackedValue.y) << 8U)
+               | (__packSnorm1x8(unpackedValue.z) << 16U)
+               | (__packSnorm1x8(unpackedValue.y) << 24U);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packHalfToSnorm4x8(half4 unpackedValue)
+{
+    __target_switch
+    {
+    case metal: __intrinsic_asm "pack_half_to_snorm4x8";
+    default:
+        float4 floatValues = float4(unpackedValue.x, unpackedValue.y, unpackedValue.z, unpackedValue.w);
+        return packFloatToSnorm4x8(floatValues);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packFloatToUnorm2x16(float2 unpackedValue)
+{
+    __target_switch
+    {
+    case glsl: __intrinsic_asm "packUnorm2x16";
+    case metal: __intrinsic_asm "pack_float_to_unorm2x16";
+    case spirv: 
+        return spirv_asm 
+        {
+            result:$$uint = OpExtInst glsl450 PackUnorm2x16 $unpackedValue;
+        };
+    case wgsl: __intrinsic_asm "pack2x16unorm";
+    default:
+        return __packUnorm1x16(unpackedValue.x)
+               | (__packUnorm1x16(unpackedValue.y) << 16U);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packHalfUnorm2x16(half2 unpackedValue)
+{
+    __target_switch
+    {
+    case metal: __intrinsic_asm "pack_half_to_unorm2x16";
+    default:
+        float2 floatValues = float2(unpackedValue.x, unpackedValue.y);
+        return packFloatToUnorm2x16(floatValues);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packFloatToSnorm2x16(float2 unpackedValue)
+{
+    __target_switch
+    {
+    case glsl: __intrinsic_asm "packSnorm2x16";
+    case metal: __intrinsic_asm "pack_float_to_snorm2x16";
+    case spirv: 
+        return spirv_asm 
+        {
+            result:$$uint = OpExtInst glsl450 PackSnorm2x16 $unpackedValue;
+        };
+    case wgsl: __intrinsic_asm "pack2x16snorm";
+    default:
+        return __packSnorm1x16(unpackedValue.x)
+               | (__packSnorm1x16(unpackedValue.y) << 16U);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packHalfSnorm2x16(half2 unpackedValue)
+{
+    __target_switch
+    {
+    case metal: __intrinsic_asm "pack_half_to_snorm2x16";
+    default:
+        float2 floatValues = float2(unpackedValue.x, unpackedValue.y);
+        return packFloatToSnorm2x16(floatValues);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packFloatToHalf2x16(float2 unpackedValue)
+{
+    __target_switch
+    {
+    case glsl: __intrinsic_asm "packHalf2x16";
+    case spirv: 
+        return spirv_asm 
+        {
+            result:$$uint = OpExtInst glsl450 PackHalf2x16 $unpackedValue;
+        };
+    case wgsl: __intrinsic_asm "pack2x16float";
+    default:
+        return __packHalf1x16(unpackedValue.x)
+               | (__packHalf1x16(unpackedValue.y) << 16U);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packHalfToHalf2x16(half2 unpackedValue)
+{
+    __target_switch
+    {
+    default:
+        float2 floatValues = float2(unpackedValue.x, unpackedValue.y);
+        return packFloatToHalf2x16(floatValues);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint32_t4 unpackUint4x8ToUint32(uint packedValue)
 {
     __target_switch
     {
@@ -24178,11 +24589,10 @@ uint32_t4 unpack_u8u32(uint8_t4_packed packed)
     case spirv: 
         return spirv_asm
         {
-            %u8Vec = OpBitcast $$vector<uint8_t, 4> $packed;
+            %u8Vec = OpBitcast $$vector<uint8_t, 4> $packedValue;
             result:$$vector<uint32_t, 4> = OpUConvert %u8Vec
         };
     default:
-        uint32_t packedValue = uint32_t(packed);
         return uint32_t4
         (
             __lsb_as_u32(packedValue),
@@ -24193,6 +24603,258 @@ uint32_t4 unpack_u8u32(uint8_t4_packed packed)
     }
 }
 
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint16_t4 unpackUint4x8ToUint16(uint packedValue)
+{
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "unpack_u8u16";
+    case spirv: 
+        return spirv_asm
+        {
+            %u8Vec = OpBitcast $$vector<uint8_t, 4> $packedValue;
+            result:$$vector<uint16_t, 4> = OpUConvert %u8Vec
+        };
+    default:
+        return uint16_t4
+        (
+            __lsb_as_u16(packedValue),
+            __lsb_as_u16(packedValue >> 8U),
+            __lsb_as_u16(packedValue >> 16U),
+            __lsb_as_u16(packedValue >> 24U),
+        );
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+int32_t4 unpackInt4x8ToInt32(uint packedValue)
+{
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "unpack_s8s32";
+    case wgsl: __intrinsic_asm "unpack4xI8";
+    case spirv: 
+        return spirv_asm
+        {
+            %s8Vec = OpBitcast $$vector<int8_t, 4> $packedValue;
+            result:$$vector<int32_t, 4> = OpSConvert %s8Vec
+        };
+    default:
+        return int32_t4
+        (
+            __lsb_as_s32(packedValue),
+            __lsb_as_s32(packedValue >> 8U),
+            __lsb_as_s32(packedValue >> 16U),
+            __lsb_as_s32(packedValue >> 24U),
+        );
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+int16_t4 unpackInt4x8ToInt16(uint packedValue)
+{
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "unpack_s8s16";
+    case spirv: 
+        return spirv_asm
+        {
+            %s8Vec = OpBitcast $$vector<int8_t, 4> $packedValue;
+            result:$$vector<int16_t, 4> = OpSConvert %s8Vec
+        };
+    default:
+        return int16_t4
+        (
+            __lsb_as_s16(packedValue),
+            __lsb_as_s16(packedValue >> 8U),
+            __lsb_as_s16(packedValue >> 16U),
+            __lsb_as_s16(packedValue >> 24U),
+        );
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packUint4x8(uint32_t4 unpackedValue)
+{
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "pack_u8";
+    case wgsl: __intrinsic_asm "pack4xU8";
+    default:
+        return __lsb_as_u32(unpackedValue.x)
+            | (__lsb_as_u32(unpackedValue.y) << 8U)
+            | (__lsb_as_u32(unpackedValue.z) << 16U)
+            | (__lsb_as_u32(unpackedValue.w) << 24U);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packUint4x8(uint16_t4 unpackedValue)
+{
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "pack_u8";
+    default:
+        return __lsb_as_u32(unpackedValue.x)
+            | (__lsb_as_u32(unpackedValue.y) << 8U)
+            | (__lsb_as_u32(unpackedValue.z) << 16U)
+            | (__lsb_as_u32(unpackedValue.w) << 24U);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packInt4x8(int32_t4 unpackedValue)
+{
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "pack_s8";
+    case wgsl: __intrinsic_asm "pack4xI8";
+    default:
+        return __lsb_as_u32(unpackedValue.x)
+            | (__lsb_as_u32(unpackedValue.y) << 8U)
+            | (__lsb_as_u32(unpackedValue.z) << 16U)
+            | (__lsb_as_u32(unpackedValue.w) << 24U);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packInt4x8(int16_t4 unpackedValue)
+{
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "pack_s8";
+    default: 
+        return __lsb_as_u32(unpackedValue.x)
+            | (__lsb_as_u32(unpackedValue.y) << 8U)
+            | (__lsb_as_u32(unpackedValue.z) << 16U)
+            | (__lsb_as_u32(unpackedValue.w) << 24U);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packUint4x8Clamp(int32_t4 unpackedValue)
+{
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "pack_clamp_u8";
+    case wgsl: __intrinsic_asm "pack4xU8Clamp(vec4<u32>($0))";
+    default:
+        return __lsb_clamp_u8_as_u32(unpackedValue.x)
+            | (__lsb_clamp_u8_as_u32(unpackedValue.y) << 8U)
+            | (__lsb_clamp_u8_as_u32(unpackedValue.z) << 16U)
+            | (__lsb_clamp_u8_as_u32(unpackedValue.w) << 24U);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packUint4x8Clamp(int16_t4 unpackedValue)
+{
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "pack_clamp_u8";
+    default:
+        return __lsb_clamp_u8_as_u32(unpackedValue.x)
+            | (__lsb_clamp_u8_as_u32(unpackedValue.y) << 8U)
+            | (__lsb_clamp_u8_as_u32(unpackedValue.z) << 16U)
+            | (__lsb_clamp_u8_as_u32(unpackedValue.w) << 24U);
+    }
+}
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packInt4x8Clamp(int32_t4 unpackedValue)
+{
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "pack_clamp_s8";
+    case wgsl: __intrinsic_asm "pack4xI8Clamp";
+    default:
+        return __lsb_clamp_s8_as_u32(unpackedValue.x)
+            | (__lsb_clamp_s8_as_u32(unpackedValue.y) << 8U)
+            | (__lsb_clamp_s8_as_u32(unpackedValue.z) << 16U)
+            | (__lsb_clamp_s8_as_u32(unpackedValue.w) << 24U);
+    }
+}
+
+
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint packInt4x8Clamp(int16_t4 unpackedValue)
+{
+    __target_switch
+    {
+    case hlsl: __intrinsic_asm "pack_clamp_s8";
+    default:
+        return __lsb_clamp_s8_as_u32(unpackedValue.x)
+            | (__lsb_clamp_s8_as_u32(unpackedValue.y) << 8U)
+            | (__lsb_clamp_s8_as_u32(unpackedValue.z) << 16U)
+            | (__lsb_clamp_s8_as_u32(unpackedValue.w) << 24U);
+    }
+}
+
+//
+// HLSL pack/unpack intrinsics.
+//
+//@public:
+/// Unpack 4 signed 8-bit values into a vector of 16 bit integers.
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+int16_t4 unpack_s8s16(int8_t4_packed packed)
+{
+   return unpackInt4x8ToInt16(uint(packed)); 
+}
+
+//@public:
+/// Unpack 4 unsigned 8-bit values into a vector of 16 bit integers.
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint16_t4 unpack_u8u16(uint8_t4_packed packed)
+{
+   return unpackUint4x8ToUint16(uint(packed));
+}
+
+//@public:
+/// Unpack 4 signed 8-bit values into a vector of 32 bit integers.
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+int32_t4 unpack_s8s32(int8_t4_packed packed)
+{
+   return unpackInt4x8ToInt32(uint(packed));
+}
+
+//@public:
+/// Unpack 4 unsigned 8-bit values into a vector of 32 bit integers.
+[__readNone]
+[ForceInline]
+[require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
+uint32_t4 unpack_u8u32(uint8_t4_packed packed)
+{
+   return unpackUint4x8ToUint32(uint(packed));
+}
+
 //@public:
 /// Pack a vector of 4 unsigned 32 bit integers into a packed value of 4 8-bit integers, dropping unused bits.
 [__readNone]
@@ -24200,19 +24862,7 @@ uint32_t4 unpack_u8u32(uint8_t4_packed packed)
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
 uint8_t4_packed pack_u8(uint32_t4 unpackedValue)
 {
-    __target_switch
-    {
-    case hlsl: __intrinsic_asm "pack_u8";
-    case wgsl: __intrinsic_asm "pack4xU8";
-    default:
-        return uint8_t4_packed
-        (
-            __lsb_as_u32(unpackedValue.x)
-            | (__lsb_as_u32(unpackedValue.y) << 8U)
-            | (__lsb_as_u32(unpackedValue.z) << 16U)
-            | (__lsb_as_u32(unpackedValue.w) << 24U)
-        );
-    }
+    return uint8_t4_packed(packUint4x8(unpackedValue));
 }
 
 //@public:
@@ -24222,19 +24872,7 @@ uint8_t4_packed pack_u8(uint32_t4 unpackedValue)
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
 int8_t4_packed pack_s8(int32_t4 unpackedValue)
 {
-    __target_switch
-    {
-    case hlsl: __intrinsic_asm "pack_s8";
-    case wgsl: __intrinsic_asm "pack4xI8";
-    default:
-        return int8_t4_packed
-        (
-            __lsb_as_u32(unpackedValue.x)
-            | (__lsb_as_u32(unpackedValue.y) << 8U)
-            | (__lsb_as_u32(unpackedValue.z) << 16U)
-            | (__lsb_as_u32(unpackedValue.w) << 24U)
-        );
-    }
+    return int8_t4_packed(packInt4x8(unpackedValue));
 }
 
 //@public:
@@ -24244,18 +24882,7 @@ int8_t4_packed pack_s8(int32_t4 unpackedValue)
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
 uint8_t4_packed pack_u8(uint16_t4 unpackedValue)
 {
-    __target_switch
-    {
-    case hlsl: __intrinsic_asm "pack_u8";
-    default:
-        return uint8_t4_packed
-        (
-            __lsb_as_u32(unpackedValue.x)
-            | (__lsb_as_u32(unpackedValue.y) << 8U)
-            | (__lsb_as_u32(unpackedValue.z) << 16U)
-            | (__lsb_as_u32(unpackedValue.w) << 24U)
-        );
-    }
+    return uint8_t4_packed(packUint4x8(unpackedValue));
 }
 
 //@public:
@@ -24265,18 +24892,7 @@ uint8_t4_packed pack_u8(uint16_t4 unpackedValue)
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
 int8_t4_packed pack_s8(int16_t4 unpackedValue)
 {
-    __target_switch
-    {
-    case hlsl: __intrinsic_asm "pack_s8";
-    default:
-        return int8_t4_packed
-        (
-            __lsb_as_u32(unpackedValue.x)
-            | (__lsb_as_u32(unpackedValue.y) << 8U)
-            | (__lsb_as_u32(unpackedValue.z) << 16U)
-            | (__lsb_as_u32(unpackedValue.w) << 24U)
-        );
-    }
+    return int8_t4_packed(packInt4x8(unpackedValue));
 }
 
 //@public:
@@ -24287,19 +24903,7 @@ int8_t4_packed pack_s8(int16_t4 unpackedValue)
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
 uint8_t4_packed pack_clamp_u8(int32_t4 unpackedValue)
 {
-    __target_switch
-    {
-    case hlsl: __intrinsic_asm "pack_clamp_u8";
-    case wgsl: __intrinsic_asm "pack4xU8Clamp(vec4<u32>($0))";
-    default:
-        return uint8_t4_packed
-        (
-            __lsb_clamp_u8_as_u32(unpackedValue.x)
-            | (__lsb_clamp_u8_as_u32(unpackedValue.y) << 8U)
-            | (__lsb_clamp_u8_as_u32(unpackedValue.z) << 16U)
-            | (__lsb_clamp_u8_as_u32(unpackedValue.w) << 24U)
-        );
-    }
+    return uint8_t4_packed(packUInt4x8Clamp(unpackedValue));
 }
 
 //@public:
@@ -24310,19 +24914,7 @@ uint8_t4_packed pack_clamp_u8(int32_t4 unpackedValue)
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
 int8_t4_packed pack_clamp_s8(int32_t4 unpackedValue)
 {
-    __target_switch
-    {
-    case hlsl: __intrinsic_asm "pack_clamp_s8";
-    case wgsl: __intrinsic_asm "pack4xI8Clamp";
-    default:
-        return int8_t4_packed
-        (
-            __lsb_clamp_s8_as_u32(unpackedValue.x)
-            | (__lsb_clamp_s8_as_u32(unpackedValue.y) << 8U)
-            | (__lsb_clamp_s8_as_u32(unpackedValue.z) << 16U)
-            | (__lsb_clamp_s8_as_u32(unpackedValue.w) << 24U)
-        );
-    }
+    return uint8_t4_packed(packUInt4x8Clamp(unpackedValue));
 }
 
 //@public:
@@ -24368,32 +24960,4 @@ int8_t4_packed pack_clamp_s8(int16_t4 unpackedValue)
         );
     }
 }
-
-// Work-graphs
-
-//@public:
-/// read-only input to Broadcasting launch node.
-__generic<T>
-//TODO: DispatchNodeInputRecord should be available only for broadcasting node shader.
-//[require(broadcasting_node)]
-[require(spirv)]
-struct DispatchNodeInputRecord
-{
-    /// Provide an access to a record object that only holds a single record.
-    NodePayloadPtr<T> Get()
-    {
-        int index = 0;
-        __target_switch
-        {
-        case spirv:
-            return spirv_asm
-            {
-                %in_payload_t = OpTypeNodePayloadArrayAMDX $$T;
-                %in_payload_ptr_t = OpTypePointer NodePayloadAMDX %in_payload_t;
-                %var = OpVariable %in_payload_ptr_t NodePayloadAMDX;
-                result : $$NodePayloadPtr<T> = OpAccessChain %var $index;
-            };
-        }
-    }
-};
 
