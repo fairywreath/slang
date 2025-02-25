@@ -35,13 +35,13 @@ void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     // Unorm4x8
     //
     float4 unorm4x8Expected = float4(0.777, 0.233, 0.931, 0.777);
-    uint unorm4x8Packed = packFloatToUnorm4x8(unorm4x8Expected);
+    uint unorm4x8Packed = packUnorm4x8(unorm4x8Expected);
     float4 unorm4x8Actual = unpackUnorm4x8ToFloat(unorm4x8Packed);
     // BUF: 1
     outputBuffer[index++] = verifyResultVector(unorm4x8Expected, unorm4x8Actual);
 
     half4 unorm4x8HalfExpected = half4(0.123h, 0.456h, 0.789h, 0.321h);
-    uint unorm4x8HalfPacked = packHalfToUnorm4x8(unorm4x8HalfExpected);
+    uint unorm4x8HalfPacked = packUnorm4x8(unorm4x8HalfExpected);
     half4 unorm4x8HalfActual = unpackUnorm4x8ToHalf(unorm4x8HalfPacked);
     // BUF-NEXT: 1
     outputBuffer[index++] = verifyResultVector(unorm4x8HalfExpected, unorm4x8HalfActual);
@@ -51,13 +51,13 @@ void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     //
     // float4 snorm4x8Expected = float4(-0.500, 0.250, -0.750, 0.999);
     float4 snorm4x8Expected = float4(-0.500, 0.0, -0.0, 0.0);
-    uint snorm4x8Packed = packFloatToSnorm4x8(snorm4x8Expected);
+    uint snorm4x8Packed = packSnorm4x8(snorm4x8Expected);
     float4 snorm4x8Actual = unpackSnorm4x8ToFloat(snorm4x8Packed);
     // BUF-NEXT: 1
     outputBuffer[index++] = verifyResultVector(snorm4x8Expected, snorm4x8Actual);
 
     half4 snorm4x8HalfExpected = half4(-0.333h, 0.666h, -1.000h, 0.500h);
-    uint snorm4x8HalfPacked = packHalfToSnorm4x8(snorm4x8HalfExpected);
+    uint snorm4x8HalfPacked = packSnorm4x8(snorm4x8HalfExpected);
     half4 snorm4x8HalfActual = unpackSnorm4x8ToHalf(snorm4x8HalfPacked);
     // BUF-NEXT: 1
     outputBuffer[index++] = verifyResultVector(snorm4x8HalfExpected, snorm4x8HalfActual);
@@ -67,13 +67,13 @@ void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     // Unorm2x16
     //
     float2 unorm2x16Expected = float2(0.1234, 0.8765);
-    uint unorm2x16Packed = packFloatToUnorm2x16(unorm2x16Expected);
+    uint unorm2x16Packed = packUnorm2x16(unorm2x16Expected);
     float2 unorm2x16Actual = unpackUnorm2x16ToFloat(unorm2x16Packed);
     // BUF-NEXT: 1
     outputBuffer[index++] = verifyResultVector(unorm2x16Expected, unorm2x16Actual);
 
     half2 unorm2x16HalfExpected = half2(0.7777h, 0.7777h);
-    uint unorm2x16HalfPacked = packHalfToUnorm2x16(unorm2x16HalfExpected);
+    uint unorm2x16HalfPacked = packUnorm2x16(unorm2x16HalfExpected);
     half2 unorm2x16HalfActual = unpackUnorm2x16ToHalf(unorm2x16HalfPacked);
     // BUF-NEXT: 1
     outputBuffer[index++] = verifyResultVector(unorm2x16HalfExpected, unorm2x16HalfActual);
@@ -82,13 +82,13 @@ void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     // Snorm2x16
     //
     float2 snorm2x16Expected = float2(-0.4444, 0.8888);
-    uint snorm2x16Packed = packFloatToSnorm2x16(snorm2x16Expected);
+    uint snorm2x16Packed = packSnorm2x16(snorm2x16Expected);
     float2 snorm2x16Actual = unpackSnorm2x16ToFloat(snorm2x16Packed);
     // BUF-NEXT: 1
     outputBuffer[index++] = verifyResultVector(snorm2x16Expected, snorm2x16Actual);
 
     half2 snorm2x16HalfExpected = half2(-0.9999h, 0.3333h);
-    uint snorm2x16HalfPacked = packHalfToSnorm2x16(snorm2x16HalfExpected);
+    uint snorm2x16HalfPacked = packSnorm2x16(snorm2x16HalfExpected);
     half2 snorm2x16HalfActual = unpackSnorm2x16ToHalf(snorm2x16HalfPacked);
     // BUF-NEXT: 1
     outputBuffer[index++] = verifyResultVector(snorm2x16HalfExpected, snorm2x16HalfActual);
@@ -97,13 +97,13 @@ void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     // Half2x16
     //
     float2 half2x16Expected = float2(130.32, -12.12);
-    uint half2x16Packed = packFloatToHalf2x16(half2x16Expected);
+    uint half2x16Packed = packHalf2x16(half2x16Expected);
     float2 half2x16Actual = unpackHalf2x16ToFloat(half2x16Packed);
     // BUF-NEXT: 1
     outputBuffer[index++] = verifyResultVector(half2x16Expected.x, half2x16Actual.x, 0.1);
 
     half2 half2x16HalfExpected = half2(-2.1111h, 4450.9999h);
-    uint half2x16HalfPacked = packHalfToHalf2x16(half2x16HalfExpected);
+    uint half2x16HalfPacked = packHalf2x16(half2x16HalfExpected);
     half2 half2x16HalfActual = unpackHalf2x16ToHalf(half2x16HalfPacked);
     // BUF-NEXT: 1
     outputBuffer[index++] = verifyResultVector(half2x16HalfExpected, half2x16HalfActual);
