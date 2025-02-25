@@ -24425,21 +24425,14 @@ float __unpackSnorm1x8(uint packedVal)
 [ForceInline]
 float __unpackUnorm1x16(uint packedVal)
 {
-    return float(__lsb_as_u16(packedVal)) / 65535.0;
+    return float(packedVal & 0xFFFFU) / 65535.0;
 }
 
 [__readNone]
 [ForceInline]
 float __unpackSnorm1x16(uint packedVal)
 {
-    return max(float(__lsb_as_s16(packedVal)) / 32767.0, -1.0);
-}
-
-[__readNone]
-[ForceInline]
-float __unpackHalf1x16(uint packedVal)
-{
-    return asfloat(__lsb_as_s16(packedVal));
+    return max(float(int16_t(packedVal)) / 32767.0, -1.0);
 }
 
 [__readNone]
@@ -24453,7 +24446,13 @@ uint __packUnorm1x8(float unpackedValue)
 [ForceInline]
 uint __packSnorm1x8(float unpackedValue)
 {
-    return uint(round(clamp(unpackedValue, -1.0, 1.0) * 127.0));
+    __target_switch
+    {
+    case cuda:
+        return uint(uint8_t(int8_t(round(clamp(unpackedValue, -1.0, 1.0) * 127.0))));
+    default:
+        return uint(uint8_t(round(clamp(unpackedValue, -1.0, 1.0) * 127.0)));
+    }
 }
 
 [__readNone]
@@ -24467,14 +24466,43 @@ uint __packUnorm1x16(float unpackedValue)
 [ForceInline]
 uint __packSnorm1x16(float unpackedValue)
 {
-    return uint(round(clamp(unpackedValue, -1.0, 1.0) * 32767.0));
+    __target_switch
+    {
+    case cuda:
+        return uint(uint16_t(int16_t(round(clamp(unpackedValue, -1.0, 1.0) * 32767.0))));
+    default:
+        return uint(uint16_t(round(clamp(unpackedValue, -1.0, 1.0) * 32767.0)));
+    }
 }
 
 [__readNone]
 [ForceInline]
-uint __packHalf1x16(float unpackedValue)
+[require(cpp_cuda_glsl_hlsl_spirv, shader5_sm_4_0)]
+public float __unpackHalf1x16(uint h)
 {
-    return asuint(half(unpackedValue));
+    uint s = ((h & uint(0x8000)) << uint(16));
+    uint e = 0;
+    uint m = ((h & uint(0x03ff)) << uint(13));
+    if (m != 0)
+    {
+        e = (((h & uint(0x7c00)) + uint(0x1c000)) << uint(13));
+    }
+    return asfloat(s | e | m); 
+}
+
+[__readNone]
+[ForceInline]
+uint __packHalf1x16(float f)
+{
+    uint u = asuint(f);
+    uint s = ((u >> uint(16)) & uint(0x8000));
+    uint e = 0;
+    uint m = ((u >> uint(13)) & uint(0x03ff));
+    if (m != 0)
+    {
+        e = ((((u & uint(0x7f800000)) - uint(0x38000000)) >> uint(13)) & uint(0x7c00));
+    }
+    return (s | e | m);
 }
 
 // @public:
@@ -24594,7 +24622,7 @@ float2 unpackUnorm2x16ToFloat(uint packedVal)
         return float2
         (
             __unpackUnorm1x16(packedVal),
-            __unpackUnorm1x16(packedVal >> 8U),
+            __unpackUnorm1x16(packedVal >> 16U),
         );
     }
 }
@@ -24636,7 +24664,7 @@ float2 unpackSnorm2x16ToFloat(uint packedVal)
         return float2
         (
             __unpackSnorm1x16(packedVal),
-            __unpackSnorm1x16(packedVal >> 8U),
+            __unpackSnorm1x16(packedVal >> 16U),
         );
     }
 }
@@ -24677,7 +24705,7 @@ float2 unpackHalf2x16ToFloat(uint packedVal)
         return float2
         (
             __unpackHalf1x16(packedVal),
-            __unpackHalf1x16(packedVal >> 8U),
+            __unpackHalf1x16(packedVal >> 16U),
         );
     }
 }
@@ -24714,7 +24742,7 @@ uint packFloatToUnorm4x8(float4 unpackedValue)
         return __packUnorm1x8(unpackedValue.x)
                | (__packUnorm1x8(unpackedValue.y) << 8U)
                | (__packUnorm1x8(unpackedValue.z) << 16U)
-               | (__packUnorm1x8(unpackedValue.y) << 24U);
+               | (__packUnorm1x8(unpackedValue.w) << 24U);
     }
 }
 
@@ -24751,7 +24779,7 @@ uint packFloatToSnorm4x8(float4 unpackedValue)
         return __packSnorm1x8(unpackedValue.x)
                | (__packSnorm1x8(unpackedValue.y) << 8U)
                | (__packSnorm1x8(unpackedValue.z) << 16U)
-               | (__packSnorm1x8(unpackedValue.y) << 24U);
+               | (__packSnorm1x8(unpackedValue.w) << 24U);
     }
 }
 
@@ -24793,7 +24821,7 @@ uint packFloatToUnorm2x16(float2 unpackedValue)
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-uint packHalfUnorm2x16(half2 unpackedValue)
+uint packHalfToUnorm2x16(half2 unpackedValue)
 {
     __target_switch
     {
@@ -24828,7 +24856,7 @@ uint packFloatToSnorm2x16(float2 unpackedValue)
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-uint packHalfSnorm2x16(half2 unpackedValue)
+uint packHalfToSnorm2x16(half2 unpackedValue)
 {
     __target_switch
     {
