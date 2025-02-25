@@ -24023,13 +24023,6 @@ T workgroupUniformLoad<T>(__ref T v)
 // to expose these intrinsics on targets that do not have SM 6.6 features.
 //
 
-[__readNone]
-[ForceInline]
-uint8_t __lsb_as_u8(uint32_t val)
-{
-    return uint8_t(val & 0xFFU);
-}
-
 //@hidden:
 [__readNone]
 [ForceInline]
@@ -24426,8 +24419,8 @@ float4 unpackUnorm4x8ToFloat(uint packedValue)
         };
     case wgsl: __intrinsic_asm "unpack4x8unorm";
     default:
-        uint4 unpackedVector = uint4(packedValue & 0xFFU, (packedValue >> 8U) & 0xFFU, (packedValue >> 16U) & 0xFFU, packedValue >> 24U);
-        return float4(unpackedVector) / 255.0; 
+        uint4 values = uint4(packedValue & 0xFFU, (packedValue >> 8U) & 0xFFU, (packedValue >> 16U) & 0xFFU, packedValue >> 24U);
+        return float4(values) / 255.0;
     }
 }
 
@@ -24461,8 +24454,8 @@ float4 unpackSnorm4x8ToFloat(uint packedValue)
     case wgsl: __intrinsic_asm "unpack4x8snorm";
     default:
         int signedValue = int(packedValue);
-        int4 unpackedVector = int4(signedValue << 24U, signedValue << 16U, signedValue << 8U, signedValue) >> 24U;
-        return clamp(float4(unpackedVector) / 127.0, -1.0, 1.0);
+        int4 values = int4(signedValue << 24U, signedValue << 16U, signedValue << 8U, signedValue) >> 24U;
+        return clamp(float4(values) / 127.0, -1.0, 1.0);
     }
 }
 
@@ -24495,8 +24488,8 @@ float2 unpackUnorm2x16ToFloat(uint packedValue)
         };
     case wgsl: __intrinsic_asm "unpack2x16unorm";
     default:
-        uint2 unpackedVector = uint2(packedValue & 0xFFFFU, packedValue >> 16);
-        return float2(unpackedVector) / 65535.0;
+        uint2 values = uint2(packedValue & 0xFFFFU, packedValue >> 16U);
+        return float2(values) / 65535.0;
     }
 }
 
@@ -24530,8 +24523,8 @@ float2 unpackSnorm2x16ToFloat(uint packedValue)
     case wgsl: __intrinsic_asm "unpack2x16snorm";
     default:
         int signedValue = int(packedValue);
-        int2 unpackedVector = int2(signedValue << 16U, signedValue) >> 16U;
-        return clamp(float2(unpackedVector) / 32767.0, -1.0, 1.0);
+        int2 values = int2(signedValue << 16U, signedValue) >> 16U;
+        return clamp(float2(values) / 32767.0, -1.0, 1.0);
     }
 }
 
@@ -24563,7 +24556,8 @@ float2 unpackHalf2x16ToFloat(uint packedValue)
         };
     case wgsl: __intrinsic_asm "unpack2x16float";
     default:
-        return float2(f16tof32(packedValue), f16tof32(packedValue >> 16U));
+        uint2 values = uint2(packedValue & 0xFFFFU, packedValue >> 16U);
+        return f16tof32(values);
     }
 }
 
@@ -24591,8 +24585,8 @@ uint packUnorm4x8(float4 unpackedValue)
         };
     case wgsl: __intrinsic_asm "pack4x8unorm";
     default:
-        uint4 unpackedVector = uint4(round(saturate(unpackedValue) * 255.0));
-        return unpackedVector.x | (unpackedVector.y << 8U) | (unpackedVector.z << 16U) | (unpackedVector.w << 24U);
+        uint4 values = uint4(round(saturate(unpackedValue) * 255.0));
+        return values.x | (values.y << 8U) | (values.z << 16U) | (values.w << 24U);
     }
 }
 
@@ -24625,8 +24619,8 @@ uint packSnorm4x8(float4 unpackedValue)
         };
     case wgsl: __intrinsic_asm "pack4x8snorm";
     default:
-        int4 unpackedVector = int4(round(clamp(unpackedValue, -1.0, 1.0) * 127.0)) & 0xFF;
-        return uint(unpackedVector.x | (unpackedVector.y << 8U) | (unpackedVector.z << 16U) | (unpackedVector.w << 24U));
+        int4 values = int4(round(clamp(unpackedValue, -1.0, 1.0) * 127.0)) & 0xFF;
+        return uint(values.x | (values.y << 8U) | (values.z << 16U) | (values.w << 24U));
     }
 }
 
@@ -24659,8 +24653,8 @@ uint packUnorm2x16(float2 unpackedValue)
         };
     case wgsl: __intrinsic_asm "pack2x16unorm";
     default:
-        uint2 unpackedVector = uint2(round(saturate(unpackedValue) * 65535.0));
-        return unpackedVector.x | (unpackedVector.y << 16U);
+        uint2 values = uint2(round(saturate(unpackedValue) * 65535.0));
+        return values.x | (values.y << 16U);
     }
 }
 
@@ -24693,8 +24687,8 @@ uint packSnorm2x16(float2 unpackedValue)
         };
     case wgsl: __intrinsic_asm "pack2x16snorm";
     default:
-        int2 unpackedVector = int2(round(clamp(unpackedValue, -1.0, 1.0) * 32767.0)) & 0xFFFF;
-        return uint(unpackedVector.x | (unpackedVector.y << 16U));
+        int2 values = int2(round(clamp(unpackedValue, -1.0, 1.0) * 32767.0)) & 0xFFFF;
+        return uint(values.x | (values.y << 16U));
     }
 }
 
@@ -24726,7 +24720,8 @@ uint packHalf2x16(float2 unpackedValue)
         };
     case wgsl: __intrinsic_asm "pack2x16float";
     default:
-        return f32tof16(unpackedValue.x) | (f32tof16(unpackedValue.y) << 16U);
+        uint2 values = f32tof16(unpackedValue);
+        return values.x | (values.y << 16U);
     }
 }
 
