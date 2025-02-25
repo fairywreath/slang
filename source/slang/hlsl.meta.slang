@@ -24404,87 +24404,16 @@ struct DispatchNodeInputRecord
     }
 };
 
-
-// @hidden:
-
-[__readNone]
-[ForceInline]
-float __unpackUnorm1x8(uint packedVal)
-{
-    return float(__lsb_as_u8(packedVal)) / 255.0;
-}
-
-[__readNone]
-[ForceInline]
-float __unpackSnorm1x8(uint packedVal)
-{
-    return max(float(__lsb_as_s8(packedVal)) / 127.0, -1.0);
-}
-
-[__readNone]
-[ForceInline]
-float __unpackUnorm1x16(uint packedVal)
-{
-    return float(packedVal & 0xFFFFU) / 65535.0;
-}
-
-[__readNone]
-[ForceInline]
-float __unpackSnorm1x16(uint packedVal)
-{
-    return max(float(int16_t(packedVal)) / 32767.0, -1.0);
-}
-
-[__readNone]
-[ForceInline]
-uint __packUnorm1x8(float unpackedValue)
-{
-    return uint(round(clamp(unpackedValue, 0.0, 1.0) * 255.0));
-}
-
-[__readNone]
-[ForceInline]
-uint __packSnorm1x8(float unpackedValue)
-{
-    __target_switch
-    {
-    case cuda:
-        return uint(uint8_t(int8_t(round(clamp(unpackedValue, -1.0, 1.0) * 127.0))));
-    default:
-        return uint(uint8_t(round(clamp(unpackedValue, -1.0, 1.0) * 127.0)));
-    }
-}
-
-[__readNone]
-[ForceInline]
-uint __packUnorm1x16(float unpackedValue)
-{
-    return uint(round(clamp(unpackedValue, 0.0, 1.0) * 65535.0));
-}
-
-[__readNone]
-[ForceInline]
-uint __packSnorm1x16(float unpackedValue)
-{
-    __target_switch
-    {
-    case cuda:
-        return uint(uint16_t(int16_t(round(clamp(unpackedValue, -1.0, 1.0) * 32767.0))));
-    default:
-        return uint(uint16_t(round(clamp(unpackedValue, -1.0, 1.0) * 32767.0)));
-    }
-}
-
-// @public:
-
 //
 // Pack/Unpack Intrinsics
 //
 
+// @public:
+
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-float4 unpackUnorm4x8ToFloat(uint packedVal)
+float4 unpackUnorm4x8ToFloat(uint packedValue)
 {
     __target_switch
     {
@@ -24493,44 +24422,32 @@ float4 unpackUnorm4x8ToFloat(uint packedVal)
     case spirv: 
         return spirv_asm
         {
-            result:$$float4 = OpExtInst glsl450 UnpackUnorm4x8 $packedVal;
+            result:$$float4 = OpExtInst glsl450 UnpackUnorm4x8 $packedValue;
         };
     case wgsl: __intrinsic_asm "unpack4x8unorm";
     default:
-        return float4
-        (
-            __unpackUnorm1x8(packedVal),
-            __unpackUnorm1x8(packedVal >> 8U),
-            __unpackUnorm1x8(packedVal >> 16U),
-            __unpackUnorm1x8(packedVal >> 24U)
-        );
+        uint4 unpackedVector = uint4(packedValue & 0xFFU, (packedValue >> 8U) & 0xFFU, (packedValue >> 16U) & 0xFFU, packedValue >> 24U);
+        return float4(unpackedVector) / 255.0; 
     }
 }
 
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-half4 unpackUnorm4x8ToHalf(uint packedVal)
+half4 unpackUnorm4x8ToHalf(uint packedValue)
 {
     __target_switch
     {
     case metal: __intrinsic_asm "unpack_unorm4x8_to_half";
     default:
-        float4 floatValues = unpackUnorm4x8ToFloat(packedVal);
-        return half4
-        (
-            half(floatValues.x),
-            half(floatValues.y),
-            half(floatValues.z),
-            half(floatValues.w),
-        );
+        return half4(unpackUnorm4x8ToFloat(packedValue));
     }
 }
 
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-float4 unpackSnorm4x8ToFloat(uint packedVal)
+float4 unpackSnorm4x8ToFloat(uint packedValue)
 {
     __target_switch
     {
@@ -24539,44 +24456,33 @@ float4 unpackSnorm4x8ToFloat(uint packedVal)
     case spirv: 
         return spirv_asm
         {
-            result:$$float4 = OpExtInst glsl450 UnpackSnorm4x8 $packedVal;
+            result:$$float4 = OpExtInst glsl450 UnpackSnorm4x8 $packedValue;
         };
     case wgsl: __intrinsic_asm "unpack4x8snorm";
     default:
-        return float4
-        (
-            __unpackSnorm1x8(packedVal),
-            __unpackSnorm1x8(packedVal >> 8U),
-            __unpackSnorm1x8(packedVal >> 16U),
-            __unpackSnorm1x8(packedVal >> 24U)
-        );
+        int signedValue = int(packedValue);
+        int4 unpackedVector = int4(signedValue << 24U, signedValue << 16U, signedValue << 8U, signedValue) >> 24U;
+        return clamp(float4(unpackedVector) / 127.0, -1.0, 1.0);
     }
 }
 
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-half4 unpackSnorm4x8ToHalf(uint packedVal)
+half4 unpackSnorm4x8ToHalf(uint packedValue)
 {
     __target_switch
     {
     case metal: __intrinsic_asm "unpack_snorm4x8_to_half";
     default:
-        float4 floatValues = unpackSnorm4x8ToFloat(packedVal);
-        return half4
-        (
-            half(floatValues.x),
-            half(floatValues.y),
-            half(floatValues.z),
-            half(floatValues.w),
-        );
+        return half4(unpackSnorm4x8ToFloat(packedValue));
     }
 }
 
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-float2 unpackUnorm2x16ToFloat(uint packedVal)
+float2 unpackUnorm2x16ToFloat(uint packedValue)
 {
     __target_switch
     {
@@ -24585,40 +24491,32 @@ float2 unpackUnorm2x16ToFloat(uint packedVal)
     case spirv: 
         return spirv_asm
         {
-            result:$$float2 = OpExtInst glsl450 UnpackUnorm2x16 $packedVal;
+            result:$$float2 = OpExtInst glsl450 UnpackUnorm2x16 $packedValue;
         };
     case wgsl: __intrinsic_asm "unpack2x16unorm";
     default:
-        return float2
-        (
-            __unpackUnorm1x16(packedVal),
-            __unpackUnorm1x16(packedVal >> 16U),
-        );
+        uint2 unpackedVector = uint2(packedValue & 0xFFFFU, packedValue >> 16);
+        return float2(unpackedVector) / 65535.0;
     }
 }
 
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-half2 unpackUnorm2x16ToHalf(uint packedVal)
+half2 unpackUnorm2x16ToHalf(uint packedValue)
 {
     __target_switch
     {
     case metal: __intrinsic_asm "unpack_unorm2x16_to_half";
     default:
-        float2 floatValues = unpackUnorm2x16ToFloat(packedVal);
-        return half2
-        (
-            half(floatValues.x),
-            half(floatValues.y),
-        );
+        return half2(unpackUnorm2x16ToFloat(packedValue));
     }
 }
 
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-float2 unpackSnorm2x16ToFloat(uint packedVal)
+float2 unpackSnorm2x16ToFloat(uint packedValue)
 {
     __target_switch
     {
@@ -24627,40 +24525,33 @@ float2 unpackSnorm2x16ToFloat(uint packedVal)
     case spirv: 
         return spirv_asm
         {
-            result:$$float2 = OpExtInst glsl450 UnpackSnorm2x16 $packedVal;
+            result:$$float2 = OpExtInst glsl450 UnpackSnorm2x16 $packedValue;
         };
     case wgsl: __intrinsic_asm "unpack2x16snorm";
     default:
-        return float2
-        (
-            __unpackSnorm1x16(packedVal),
-            __unpackSnorm1x16(packedVal >> 16U),
-        );
+        int signedValue = int(packedValue);
+        int2 unpackedVector = int2(signedValue << 16U, signedValue) >> 16U;
+        return clamp(float2(unpackedVector) / 32767.0, -1.0, 1.0);
     }
 }
 
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-half2 unpackSnorm2x16ToHalf(uint packedVal)
+half2 unpackSnorm2x16ToHalf(uint packedValue)
 {
     __target_switch
     {
     case metal: __intrinsic_asm "unpack_snorm2x16_to_half";
     default:
-        float2 floatValues = unpackSnorm2x16ToFloat(packedVal);
-        return half2
-        (
-            half(floatValues.x),
-            half(floatValues.y),
-        );
+        return half2(unpackSnorm2x16ToFloat(packedValue));
     }
 }
 
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-float2 unpackHalf2x16ToFloat(uint packedVal)
+float2 unpackHalf2x16ToFloat(uint packedValue)
 {
     __target_switch
     {
@@ -24668,29 +24559,20 @@ float2 unpackHalf2x16ToFloat(uint packedVal)
     case spirv: 
         return spirv_asm
         {
-            result:$$float2 = OpExtInst glsl450 UnpackHalf2x16 $packedVal;
+            result:$$float2 = OpExtInst glsl450 UnpackHalf2x16 $packedValue;
         };
     case wgsl: __intrinsic_asm "unpack2x16float";
     default:
-        return float2
-        (
-            f16tof32(packedVal),
-            f16tof32(packedVal >> 16U),
-        );
+        return float2(f16tof32(packedValue), f16tof32(packedValue >> 16U));
     }
 }
 
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
-half2 unpackHalf2x16ToHalf(uint packedVal)
+half2 unpackHalf2x16ToHalf(uint packedValue)
 {
-    float2 floatValues = unpackHalf2x16ToFloat(packedVal);
-    return half2
-    (
-        half(floatValues.x),
-        half(floatValues.y),
-    );
+    return half2(unpackHalf2x16ToFloat(packedValue)); 
 }
 
 [__readNone]
@@ -24709,10 +24591,8 @@ uint packFloatToUnorm4x8(float4 unpackedValue)
         };
     case wgsl: __intrinsic_asm "pack4x8unorm";
     default:
-        return __packUnorm1x8(unpackedValue.x)
-               | (__packUnorm1x8(unpackedValue.y) << 8U)
-               | (__packUnorm1x8(unpackedValue.z) << 16U)
-               | (__packUnorm1x8(unpackedValue.w) << 24U);
+      uint4 unpackedVector = uint4(round(saturate(unpackedValue) * 255.0));
+      return unpackedVector.x | (unpackedVector.y << 8U) | (unpackedVector.z << 16U) | (unpackedVector.w << 24U);
     }
 }
 
@@ -24725,8 +24605,7 @@ uint packHalfToUnorm4x8(half4 unpackedValue)
     {
     case metal: __intrinsic_asm "pack_half_to_unorm4x8";
     default:
-        float4 floatValues = float4(unpackedValue.x, unpackedValue.y, unpackedValue.z, unpackedValue.w);
-        return packFloatToUnorm4x8(floatValues);
+        return packFloatToUnorm4x8(float4(unpackedValue));
     }
 }
 
@@ -24746,10 +24625,8 @@ uint packFloatToSnorm4x8(float4 unpackedValue)
         };
     case wgsl: __intrinsic_asm "pack4x8snorm";
     default:
-        return __packSnorm1x8(unpackedValue.x)
-               | (__packSnorm1x8(unpackedValue.y) << 8U)
-               | (__packSnorm1x8(unpackedValue.z) << 16U)
-               | (__packSnorm1x8(unpackedValue.w) << 24U);
+        int4 unpackedVector = int4(round(clamp(unpackedValue, -1.0, 1.0) * 127.0)) & 0xFF;
+        return uint(unpackedVector.x | (unpackedVector.y << 8U) | (unpackedVector.z << 16U) | (unpackedVector.w << 24U));
     }
 }
 
@@ -24762,8 +24639,7 @@ uint packHalfToSnorm4x8(half4 unpackedValue)
     {
     case metal: __intrinsic_asm "pack_half_to_snorm4x8";
     default:
-        float4 floatValues = float4(unpackedValue.x, unpackedValue.y, unpackedValue.z, unpackedValue.w);
-        return packFloatToSnorm4x8(floatValues);
+        return packFloatToSnorm4x8(float4(unpackedValue));
     }
 }
 
@@ -24783,8 +24659,8 @@ uint packFloatToUnorm2x16(float2 unpackedValue)
         };
     case wgsl: __intrinsic_asm "pack2x16unorm";
     default:
-        return __packUnorm1x16(unpackedValue.x)
-               | (__packUnorm1x16(unpackedValue.y) << 16U);
+        uint2 unpackedVector = uint2(round(saturate(unpackedValue) * 65535.0));
+        return unpackedVector.x | (unpackedVector.y << 16U);
     }
 }
 
@@ -24797,8 +24673,7 @@ uint packHalfToUnorm2x16(half2 unpackedValue)
     {
     case metal: __intrinsic_asm "pack_half_to_unorm2x16";
     default:
-        float2 floatValues = float2(unpackedValue.x, unpackedValue.y);
-        return packFloatToUnorm2x16(floatValues);
+        return packFloatToUnorm2x16(float2(unpackedValue));
     }
 }
 
@@ -24818,8 +24693,8 @@ uint packFloatToSnorm2x16(float2 unpackedValue)
         };
     case wgsl: __intrinsic_asm "pack2x16snorm";
     default:
-        return __packSnorm1x16(unpackedValue.x)
-               | (__packSnorm1x16(unpackedValue.y) << 16U);
+        int2 unpackedVector = int2(round(clamp(unpackedValue, -1.0, 1.0) * 32767.0)) & 0xFFFF;
+        return uint(unpackedVector.x | (unpackedVector.y << 16U));
     }
 }
 
@@ -24832,8 +24707,7 @@ uint packHalfToSnorm2x16(half2 unpackedValue)
     {
     case metal: __intrinsic_asm "pack_half_to_snorm2x16";
     default:
-        float2 floatValues = float2(unpackedValue.x, unpackedValue.y);
-        return packFloatToSnorm2x16(floatValues);
+        return packFloatToSnorm2x16(unpackedValue);
     }
 }
 
@@ -24852,8 +24726,7 @@ uint packFloatToHalf2x16(float2 unpackedValue)
         };
     case wgsl: __intrinsic_asm "pack2x16float";
     default:
-        return f32tof16(unpackedValue.x)
-               | (f32tof16(unpackedValue.y) << 16U);
+        return f32tof16(unpackedValue.x) | (f32tof16(unpackedValue.y) << 16U);
     }
 }
 
@@ -24862,11 +24735,6 @@ uint packFloatToHalf2x16(float2 unpackedValue)
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
 uint packHalfToHalf2x16(half2 unpackedValue)
 {
-    __target_switch
-    {
-    default:
-        float2 floatValues = float2(unpackedValue.x, unpackedValue.y);
-        return packFloatToHalf2x16(floatValues);
-    }
+    return packFloatToHalf2x16(float2(unpackedValue)); 
 }
 

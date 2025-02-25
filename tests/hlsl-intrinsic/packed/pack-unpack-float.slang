@@ -18,7 +18,7 @@ bool verifyResult<T: IFloat> (T expected, T actual, T tolerance)
     return (expected - tolerance) <= actual && actual <= (expected + tolerance);
 }
 
-bool verifyResultVector<T: IFloat, let N: int>(vector<T, N> expected, vector<T, N> actual, T tolerance = T(0.02))
+bool verifyResultVector<T: IFloat, let N: int>(vector<T, N> expected, vector<T, N> actual, T tolerance = T(0.01))
 {
     bool isValid = true;
     for (int i = 0; i < N; ++i)
@@ -39,7 +39,6 @@ void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float4 unorm4x8Actual = unpackUnorm4x8ToFloat(unorm4x8Packed);
     // BUF: 1
     outputBuffer[index++] = verifyResultVector(unorm4x8Expected, unorm4x8Actual);
-    outputBuffer[index++] = unorm4x8Packed;
 
     half4 unorm4x8HalfExpected = half4(0.123h, 0.456h, 0.789h, 0.321h);
     uint unorm4x8HalfPacked = packHalfToUnorm4x8(unorm4x8HalfExpected);
