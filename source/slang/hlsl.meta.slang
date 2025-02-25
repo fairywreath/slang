@@ -24403,6 +24403,9 @@ struct DispatchNodeInputRecord
 
 // @public:
 
+/// Unpack a 32-bit unsigned integer into four 8-bit unsigned integers.
+/// Then, each 8-bit value is converted to a normalized single-precision
+/// floating-point value to generate a 4-component vector.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24424,6 +24427,9 @@ float4 unpackUnorm4x8ToFloat(uint packedValue)
     }
 }
 
+/// Unpack a 32-bit unsigned integer into four 8-bit unsigned integers.
+/// Then, each 8-bit value is converted to a normalized half-precision
+/// floating-point value to generate a 4-component vector.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24437,6 +24443,9 @@ half4 unpackUnorm4x8ToHalf(uint packedValue)
     }
 }
 
+/// Unpack a 32-bit unsigned integer into four 8-bit signed integers.
+/// Then, each 8-bit value is converted to a normalized single-precision
+/// floating-point value to generate a 4-component vector.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24459,6 +24468,9 @@ float4 unpackSnorm4x8ToFloat(uint packedValue)
     }
 }
 
+/// Unpack a 32-bit unsigned integer into four 8-bit signed integers.
+/// Then, each 8-bit value is converted to a normalized half-precision
+/// floating-point value to generate a 4-component vector.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24472,6 +24484,9 @@ half4 unpackSnorm4x8ToHalf(uint packedValue)
     }
 }
 
+/// Unpack a 32-bit unsigned integer into two 16-bit usigned integers.
+/// Then, each 16-bit value is converted to a normalized single-precision
+/// floating-point value to generate a 2-component vector.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24493,6 +24508,9 @@ float2 unpackUnorm2x16ToFloat(uint packedValue)
     }
 }
 
+/// Unpack a 32-bit unsigned integer into two 16-bit usigned integers.
+/// Then, each 16-bit value is converted to a normalized half-precision
+/// floating-point value to generate a 2-component vector.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24506,6 +24524,9 @@ half2 unpackUnorm2x16ToHalf(uint packedValue)
     }
 }
 
+/// Unpack a 32-bit unsigned integer into two 16-bit signed integers.
+/// Then, each 16-bit value is converted to a normalized single-precision
+/// floating-point value to generate a 2-component vector.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24528,6 +24549,9 @@ float2 unpackSnorm2x16ToFloat(uint packedValue)
     }
 }
 
+/// Unpack a 32-bit unsigned integer into two 16-bit signed integers.
+/// Then, each 16-bit value is converted to a normalized half-precision
+/// floating-point value to generate a 2-component vector.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24541,6 +24565,9 @@ half2 unpackSnorm2x16ToHalf(uint packedValue)
     }
 }
 
+/// Unpack a 32-bit unsigned integer into two 16-bit signed integers.
+/// Then, each 16-bit value is converted to an IEEE-754 binary16 single-precision
+/// floating-point value to generate a 2-component vector.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
@@ -24561,6 +24588,9 @@ float2 unpackHalf2x16ToFloat(uint packedValue)
     }
 }
 
+/// Unpack a 32-bit unsigned integer into two 16-bit signed integers.
+/// Then, each 16-bit value is converted to an IEEE-754 binary16 half-precision
+/// floating-point value to generate a 2-component vector.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
@@ -24569,6 +24599,9 @@ half2 unpackHalf2x16ToHalf(uint packedValue)
     return half2(unpackHalf2x16ToFloat(packedValue)); 
 }
 
+/// Convert a 4-component vector of normalized unsigned single-precision floating-point
+/// values to four 8-bit integer values, then pack these 8-bit values into a
+/// 32-bit unsigned integer.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24590,6 +24623,9 @@ uint packUnorm4x8(float4 unpackedValue)
     }
 }
 
+/// Convert a 4-component vector of normalized unsigned half-precision floating-point
+/// values to four 8-bit integer values, then pack these 8-bit values into a
+/// 32-bit unsigned integer.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24603,6 +24639,9 @@ uint packUnorm4x8(half4 unpackedValue)
     }
 }
 
+/// Convert a 4-component vector of normalized signed single-precision floating-point
+/// values to four 8-bit integer values, then pack these 8-bit values into a
+/// 32-bit unsigned integer.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24624,6 +24663,9 @@ uint packSnorm4x8(float4 unpackedValue)
     }
 }
 
+/// Convert a 4-component vector of normalized signed half-precision floating-point
+/// values to four 8-bit integer values, then pack these 8-bit values into a
+/// 32-bit unsigned integer.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24637,6 +24679,9 @@ uint packSnorm4x8(half4 unpackedValue)
     }
 }
 
+/// Convert a 2-component vector of normalized unsigned single-precision floating-point
+/// values to two 16-bit integer values, then pack these 16-bit values into a
+/// 32-bit unsigned integer.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24658,6 +24703,9 @@ uint packUnorm2x16(float2 unpackedValue)
     }
 }
 
+/// Convert a 2-component vector of normalized unsigned half-precision floating-point
+/// values to two 16-bit integer values, then pack these 16-bit values into a
+/// 32-bit unsigned integer.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24671,6 +24719,9 @@ uint packUnorm2x16(half2 unpackedValue)
     }
 }
 
+/// Convert a 2-component vector of normalized signed single-precision floating-point
+/// values to two 16-bit integer values, then pack these 16-bit values into a
+/// 32-bit unsigned integer.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24692,6 +24743,9 @@ uint packSnorm2x16(float2 unpackedValue)
     }
 }
 
+/// Convert a 2-component vector of normalized signed half-precision floating-point
+/// values to two 16-bit integer values, then pack these 16-bit values into a
+/// 32-bit unsigned integer.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_4_0)]
@@ -24705,6 +24759,9 @@ uint packSnorm2x16(half2 unpackedValue)
     }
 }
 
+/// Convert a 2-component vector of IEEE-754 binary16 single-precision floating-point
+/// values to two 16-bit integer values, then pack these 16-bit values into a
+/// 32-bit unsigned integer.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
@@ -24725,6 +24782,9 @@ uint packHalf2x16(float2 unpackedValue)
     }
 }
 
+/// Convert a 2-component vector of IEEE-754 binary16 half-precision floating-point
+/// values to two 16-bit integer values, then pack these 16-bit values into a
+/// 32-bit unsigned integer.
 [__readNone]
 [ForceInline]
 [require(cpp_cuda_glsl_hlsl_metal_spirv_wgsl, shader5_sm_5_0)]
