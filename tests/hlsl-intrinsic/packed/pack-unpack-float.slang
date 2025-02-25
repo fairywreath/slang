@@ -1,3 +1,8 @@
+//TEST(compute):SIMPLE(filecheck=CHECK_SPV): -target spirv
+//TEST(compute):SIMPLE(filecheck=CHECK_GLSL): -target glsl
+//TEST(compute):SIMPLE(filecheck=CHECK_METAL): -target metal
+//TEST(compute):SIMPLE(filecheck=CHECK_WGSL): -target wgsl
+
 //TEST(compute):COMPARE_COMPUTE_EX(filecheck-buffer=BUF):-vk -compute -shaderobj -emit-spirv-via-glsl -output-using-type
 //TEST(compute):COMPARE_COMPUTE_EX(filecheck-buffer=BUF):-vk -compute -shaderobj -emit-spirv-directly -output-using-type -allow-glsl
 //TEST(compute):COMPARE_COMPUTE_EX(filecheck-buffer=BUF):-slang -compute -shaderobj -render-feature hardware-device -output-using-type
@@ -10,7 +15,7 @@
 // Debug info for inlining errors can be given out, so disable them for this test.
 //TEST(compute):COMPARE_COMPUTE_EX(filecheck-buffer=BUF):-cuda -compute -g0 -output-using-type
 
-//TEST_INPUT:ubuffer(data=[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0], stride=4):out,name outputBuffer
+//TEST_INPUT:ubuffer(data=[0 0 0 0 0 0 0 0 0 0], stride=4):out,name outputBuffer
 RWStructuredBuffer<uint> outputBuffer;
 
 bool verifyResult<T: IFloat> (T expected, T actual, T tolerance)
@@ -34,6 +39,20 @@ void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     //
     // Unorm4x8
     //
+    // CHECK_SPV: OpExtInst{{.*}} PackUnorm4x8
+    // CHECK_SPV: OpExtInst{{.*}} UnpackUnorm4x8
+    //
+    // CHECK_GLSL: (unpackUnorm4x8
+    // CHECK_GLSL: (packUnorm4x8
+    //
+    // CHECK_METAL: unpack_unorm4x8_to_float
+    // CHECK_METAL: pack_float_to_unorm4x8
+    // CHECK_METAL: unpack_unorm4x8_to_half
+    // CHECK_METAL: pack_half_to_unorm4x8
+    //
+    // CHECK_WGSL: (unpack4x8unorm
+    // CHECK_WGSL: (pack4x8unorm
+    //
     float4 unorm4x8Expected = float4(0.777, 0.233, 0.931, 0.777);
     uint unorm4x8Packed = packUnorm4x8(unorm4x8Expected);
     float4 unorm4x8Actual = unpackUnorm4x8ToFloat(unorm4x8Packed);
@@ -49,8 +68,21 @@ void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     //
     // Snorm4x8
     //
-    // float4 snorm4x8Expected = float4(-0.500, 0.250, -0.750, 0.999);
-    float4 snorm4x8Expected = float4(-0.500, 0.0, -0.0, 0.0);
+    // CHECK_SPV: OpExtInst{{.*}} PackSnorm4x8
+    // CHECK_SPV: OpExtInst{{.*}} UnpackSnorm4x8
+    //
+    // CHECK_GLSL: (unpackSnorm4x8
+    // CHECK_GLSL: (packSnorm4x8
+    //
+    // CHECK_METAL: unpack_snorm4x8_to_float
+    // CHECK_METAL: pack_float_to_snorm4x8
+    // CHECK_METAL: unpack_snorm4x8_to_half
+    // CHECK_METAL: pack_half_to_snorm4x8
+    //
+    // CHECK_WGSL: (unpack4x8snorm
+    // CHECK_WGSL: (pack4x8snorm
+    //
+    float4 snorm4x8Expected = float4(-0.500, 0.250, -0.750, 0.999);
     uint snorm4x8Packed = packSnorm4x8(snorm4x8Expected);
     float4 snorm4x8Actual = unpackSnorm4x8ToFloat(snorm4x8Packed);
     // BUF-NEXT: 1
@@ -62,9 +94,22 @@ void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     // BUF-NEXT: 1
     outputBuffer[index++] = verifyResultVector(snorm4x8HalfExpected, snorm4x8HalfActual);
 
-
     //
     // Unorm2x16
+    //
+    // CHECK_SPV: OpExtInst{{.*}} PackUnorm2x16
+    // CHECK_SPV: OpExtInst{{.*}} UnpackUnorm2x16
+    //
+    // CHECK_GLSL: (unpackUnorm2x16
+    // CHECK_GLSL: (packUnorm2x16
+    //
+    // CHECK_METAL: unpack_unorm2x16_to_float
+    // CHECK_METAL: pack_float_to_unorm2x16
+    // CHECK_METAL: unpack_unorm2x16_to_half
+    // CHECK_METAL: pack_half_to_unorm2x16
+    //
+    // CHECK_WGSL: (unpack2x16unorm
+    // CHECK_WGSL: (pack2x16unorm
     //
     float2 unorm2x16Expected = float2(0.1234, 0.8765);
     uint unorm2x16Packed = packUnorm2x16(unorm2x16Expected);
@@ -81,6 +126,20 @@ void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     //
     // Snorm2x16
     //
+    // CHECK_SPV: OpExtInst{{.*}} UnpackSnorm2x16
+    // CHECK_SPV: OpExtInst{{.*}} PackSnorm2x16
+    //
+    // CHECK_GLSL: (unpackSnorm2x16
+    // CHECK_GLSL: (packSnorm2x16
+    //
+    // CHECK_METAL: unpack_snorm2x16_to_float
+    // CHECK_METAL: pack_float_to_snorm2x16
+    // CHECK_METAL: unpack_snorm2x16_to_half
+    // CHECK_METAL: pack_half_to_snorm2x16
+    //
+    // CHECK_WGSL: (unpack2x16snorm
+    // CHECK_WGSL: (pack2x16snorm
+    //
     float2 snorm2x16Expected = float2(-0.4444, 0.8888);
     uint snorm2x16Packed = packSnorm2x16(snorm2x16Expected);
     float2 snorm2x16Actual = unpackSnorm2x16ToFloat(snorm2x16Packed);
@@ -96,6 +155,15 @@ void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     //
     // Half2x16
     //
+    // CHECK_SPV: OpExtInst{{.*}} UnpackHalf2x16
+    // CHECK_SPV: OpExtInst{{.*}} PackHalf2x16
+    //
+    // CHECK_GLSL: (unpackHalf2x16
+    // CHECK_GLSL: (packHalf2x16
+    //
+    // CHECK_WGSL: (unpack2x16float
+    // CHECK_WGSL: (pack2x16float
+    //
     float2 half2x16Expected = float2(130.32, -12.12);
     uint half2x16Packed = packHalf2x16(half2x16Expected);
     float2 half2x16Actual = unpackHalf2x16ToFloat(half2x16Packed);
@@ -108,4 +176,3 @@ void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     // BUF-NEXT: 1
     outputBuffer[index++] = verifyResultVector(half2x16HalfExpected, half2x16HalfActual);
 }
-
