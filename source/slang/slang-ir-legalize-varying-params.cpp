@@ -1710,6 +1710,7 @@ protected:
             varTypeIsPermitted = varTypeIsPermitted || permittedType == varType;
         }
 
+        // if (!varTypeIsPermitted)
         if (!varTypeIsPermitted)
         {
             // Note: we do not currently prefer any conversion
@@ -1719,27 +1720,27 @@ protected:
             // * Slang will equally prefer `float4` to `uint4` to `int4`.
             //   This means the type may lose data if slang selects `uint4` or `int4`.
             bool foundAConversion = false;
-            for (auto permittedType : info.permittedTypes)
-            {
-                var->setFullType(permittedType);
-                builder.setInsertBefore(
-                    entryPoint.entryPointFunc->getFirstBlock()->getFirstOrdinaryInst());
-
-                // get uses before we `tryConvertValue` since this creates a new use
-                List<IRUse*> uses;
-                for (auto use = var->firstUse; use; use = use->nextUse)
-                    uses.add(use);
-
-                auto convertedValue = tryConvertValue(builder, var, varType);
-                if (convertedValue == nullptr)
-                    continue;
-
-                foundAConversion = true;
-                copyNameHintAndDebugDecorations(convertedValue, var);
-
-                for (auto use : uses)
-                    builder.replaceOperand(use, convertedValue);
-            }
+            // for (auto permittedType : info.permittedTypes)
+            // {
+            //     var->setFullType(permittedType);
+            //     builder.setInsertBefore(
+            //         entryPoint.entryPointFunc->getFirstBlock()->getFirstOrdinaryInst());
+            //
+            //     // get uses before we `tryConvertValue` since this creates a new use
+            //     List<IRUse*> uses;
+            //     for (auto use = var->firstUse; use; use = use->nextUse)
+            //         uses.add(use);
+            //
+            //     auto convertedValue = tryConvertValue(builder, var, varType);
+            //     if (convertedValue == nullptr)
+            //         continue;
+            //
+            //     foundAConversion = true;
+            //     copyNameHintAndDebugDecorations(convertedValue, var);
+            //
+            //     for (auto use : uses)
+            //         builder.replaceOperand(use, convertedValue);
+            // }
             if (!foundAConversion)
             {
                 // If we can't convert the value, report an error.
@@ -1991,7 +1992,8 @@ private:
                 fixFieldSemanticsOfFlatStruct(flattenedStruct);
                 ensureStructHasUserSemantic<LayoutResourceKind::VaryingInput>(
                     flattenedStruct,
-                    layout);
+                    layout,
+                    entryPoint);
                 if (flattenedStruct != structType)
                 {
                     // Replace the 'old IRParam type' with a 'new IRParam type'
@@ -2148,7 +2150,10 @@ private:
     }
 
     template<LayoutResourceKind K>
-    void ensureStructHasUserSemantic(IRStructType* structType, IRVarLayout* varLayout)
+    void ensureStructHasUserSemantic(
+        IRStructType* structType,
+        IRVarLayout* varLayout,
+        const EntryPointInfo& entryPoint)
     {
         // Ensure each field in an output struct type has either a system semantic or a user
         // semantic, so that signature matching can happen correctly.
@@ -2162,20 +2167,29 @@ private:
             {
                 if (semanticDecor->getSemanticName().startsWithCaseInsensitive(toSlice("sv_")))
                 {
-                    auto indexAsString = String(UInt(semanticDecor->getSemanticIndex()));
-                    auto sysValInfo =
-                        getSystemValueInfo(semanticDecor->getSemanticName(), &indexAsString, field);
-                    if (sysValInfo.isUnsupported)
-                    {
-                        reportUnsupportedSystemAttribute(field, semanticDecor->getSemanticName());
-                    }
-                    else
-                    {
-                        builder.addTargetSystemValueDecoration(
-                            key,
-                            sysValInfo.systemValueName.getUnownedSlice());
-                        semanticDecor->removeAndDeallocate();
-                    }
+                    SystemValLegalizationWorkItem systemValWorkItem = {
+                        .var = field,
+                        .varType = field->getFullType(),
+                        .attrName = semanticDecor->getSemanticName(),
+                        .attrIndex = UInt(semanticDecor->getSemanticIndex()),
+                    };
+                    legalizeSystemValue(entryPoint, systemValWorkItem);
+                    // auto indexAsString = String(UInt(semanticDecor->getSemanticIndex()));
+                    // auto sysValInfo =
+                    //     getSystemValueInfo(semanticDecor->getSemanticName(), &indexAsString,
+                    //     field);
+                    // if (sysValInfo.isUnsupported)
+                    // {
+                    //     reportUnsupportedSystemAttribute(field,
+                    //     semanticDecor->getSemanticName());
+                    // }
+                    // else
+                    // {
+                    //     builder.addTargetSystemValueDecoration(
+                    //         key,
+                    //         sysValInfo.systemValueName.getUnownedSlice());
+                    //     semanticDecor->removeAndDeallocate();
+                    // }
                 }
                 index++;
                 continue;
@@ -2876,7 +2890,8 @@ private:
             fixFieldSemanticsOfFlatStruct(flattenedStruct);
             ensureStructHasUserSemantic<LayoutResourceKind::VaryingOutput>(
                 flattenedStruct,
-                resultLayout);
+                resultLayout,
+                entryPoint);
             return;
         }
 
@@ -2896,7 +2911,10 @@ private:
         auto typeLayout = structTypeLayoutBuilder.build();
         IRVarLayout::Builder varLayoutBuilder(&builder, typeLayout);
         auto varLayout = varLayoutBuilder.build();
-        ensureStructHasUserSemantic<LayoutResourceKind::VaryingOutput>(structType, varLayout);
+        ensureStructHasUserSemantic<LayoutResourceKind::VaryingOutput>(
+            structType,
+            varLayout,
+            entryPoint);
 
         _replaceAllReturnInst(
             builder,
@@ -2917,6 +2935,14 @@ private:
             }
         case Stage::Vertex:
             {
+
+                if (auto semanticDecor = func->findDecoration<IRSemanticDecoration>())
+                {
+                    if (semanticDecor->getSemanticName().startsWithCaseInsensitive(toSlice("sv_")))
+                    {
+                        printf("FW: found semantic name %s\n", semanticDecor->getSemanticName());
+                    }
+                }
                 builder.addTargetSystemValueDecoration(key, toSlice("position"));
                 break;
             }
