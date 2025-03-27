@@ -3094,6 +3094,31 @@ vector<T.Element,4> __texture_gather(
 }
 
 __generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
+ [ForceInline]
+ [require(spirv, texture_gather)]
+ vector<T.Element,4> __texture_gather(
+     _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 0, format> texture,
+     SamplerState s,
+     vector<float, Shape.dimensions+isArray> location,
+     int component,
+     out uint status)
+ {
+     return spirv_asm
+     {
+         OpCapability SparseResidency;
+         %sparseResultType = OpTypeStruct $$uint $$vector<T.Element,4>;
+         %sampledImage:__sampledImageType(texture) = OpSampledImage $texture $s;
+ 
+         %sparseResult:%sparseResultType = OpImageSparseGather %sampledImage $location $component;
+ 
+         %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+         OpStore &status %residentCode;
+         result:$$vector<T.Element,4> = OpCompositeExtract %sparseResult 1;
+     };
+ }
+ 
+
+__generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
 [ForceInline]
 [require(glsl_spirv, texture_gather)]
 vector<T.Element,4> __texture_gather(
@@ -3111,6 +3136,29 @@ vector<T.Element,4> __texture_gather(
         };
     }
 }
+
+__generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
+ [ForceInline]
+ [require(spirv, texture_gather)]
+ vector<T.Element,4> __texture_gather(
+     _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 1, format> sampler,
+     vector<float, Shape.dimensions+isArray> location,
+     int component,
+     out uint status)
+ {
+     return spirv_asm
+     {
+         OpCapability SparseResidency;
+         %sparseResultType = OpTypeStruct $$uint $$vector<T.Element,4>;
+ 
+         %sparseResult:%sparseResultType = OpImageSparseGather $sampler $location $component;
+ 
+         %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+         OpStore &status %residentCode;
+         result:$$vector<T.Element,4> = OpCompositeExtract %sparseResult 1;
+     };
+ }
+ 
 
 __generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
 [ForceInline]
@@ -3175,6 +3223,32 @@ vector<T.Element,4> __texture_gather_offset(
 }
 
 __generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
+ [ForceInline]
+ [require(spirv, texture_gather)]
+ vector<T.Element,4> __texture_gather_offset(
+     _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 0, format> texture,
+     SamplerState s,
+     vector<float, Shape.dimensions+isArray> location,
+     constexpr vector<int, Shape.planeDimensions> offset,
+     int component,
+     out uint status)
+ {
+     return spirv_asm
+     {
+         OpCapability ImageGatherExtended;
+         OpCapability SparseResidency;
+         %sparseResultType = OpTypeStruct $$uint $$vector<T.Element,4>;
+         %sampledImage:__sampledImageType(texture) = OpSampledImage $texture $s;
+ 
+         %sparseResult:%sparseResultType = OpImageSparseGather %sampledImage $location $component Offset $offset;
+ 
+         %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+         OpStore &status %residentCode;
+         result:$$vector<T.Element,4> = OpCompositeExtract %sparseResult 1;
+     };
+ }
+
+__generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
 [ForceInline]
 [require(glsl_spirv, texture_gather)]
 vector<T.Element,4> __texture_gather_offset(
@@ -3194,6 +3268,30 @@ vector<T.Element,4> __texture_gather_offset(
         };
     }
 }
+
+__generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
+ [ForceInline]
+ [require(spirv, texture_gather)]
+ vector<T.Element,4> __texture_gather_offset(
+     _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 1, format> sampler,
+     vector<float, Shape.dimensions+isArray> location,
+     constexpr vector<int, Shape.planeDimensions> offset,
+     int component,
+     out uint status)
+ {
+     return spirv_asm
+     {
+         OpCapability ImageGatherExtended;
+         OpCapability SparseResidency;
+         %sparseResultType = OpTypeStruct $$uint $$vector<T.Element,4>;
+ 
+         %sparseResult:%sparseResultType = OpImageSparseGather $sampler $location $component Offset $offset;
+ 
+         %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+         OpStore &status %residentCode;
+         result:$$vector<T.Element,4> = OpCompositeExtract %sparseResult 1;
+     };
+ }
 
 __generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
 [ForceInline]
@@ -3223,6 +3321,36 @@ vector<T.Element,4> __texture_gather_offsets(
 }
 
 __generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
+ [ForceInline]
+ [require(spirv, texture_gather)]
+ vector<T.Element,4> __texture_gather_offsets(
+     _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 0, format> texture,
+     SamplerState s,
+     vector<float, Shape.dimensions+isArray> location,
+     constexpr vector<int, Shape.planeDimensions> offset1,
+     constexpr vector<int, Shape.planeDimensions> offset2,
+     constexpr vector<int, Shape.planeDimensions> offset3,
+     constexpr vector<int, Shape.planeDimensions> offset4,
+     int component,
+     out uint status)
+ {
+     let offsets = __makeArray(offset1,offset2,offset3,offset4);
+     return spirv_asm
+     {
+         OpCapability ImageGatherExtended;
+         OpCapability SparseResidency;
+         %sparseResultType = OpTypeStruct $$uint $$vector<T.Element,4>;
+         %sampledImage : __sampledImageType(texture) = OpSampledImage $texture $s;
+ 
+         %sparseResult:%sparseResultType = OpImageSparseGather %sampledImage $location $component ConstOffsets $offsets;
+ 
+         %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+         OpStore &status %residentCode;
+         result:$$vector<T.Element,4> = OpCompositeExtract %sparseResult 1;
+     };
+ }
+
+__generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
 [ForceInline]
 [require(glsl_spirv, texture_gather)]
 vector<T.Element,4> __texture_gather_offsets(
@@ -3246,6 +3374,34 @@ vector<T.Element,4> __texture_gather_offsets(
         };
     }
 }
+
+__generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
+ [ForceInline]
+ [require(spirv, texture_gather)]
+ vector<T.Element,4> __texture_gather_offsets(
+     _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 1, format> sampler,
+     vector<float, Shape.dimensions+isArray> location,
+     constexpr vector<int, Shape.planeDimensions> offset1,
+     constexpr vector<int, Shape.planeDimensions> offset2,
+     constexpr vector<int, Shape.planeDimensions> offset3,
+     constexpr vector<int, Shape.planeDimensions> offset4,
+     int component,
+     out uint status)
+ {
+     let offsets = __makeArray(offset1,offset2,offset3,offset4);
+     return spirv_asm
+     {
+         OpCapability ImageGatherExtended;
+         OpCapability SparseResidency;
+         %sparseResultType = OpTypeStruct $$uint $$vector<T.Element,4>;
+ 
+         %sparseResult:%sparseResultType = OpImageSparseGather $sampler $location $component ConstOffsets $offsets;
+ 
+         %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+         OpStore &status %residentCode;
+         result:$$vector<T.Element,4> = OpCompositeExtract %sparseResult 1;
+     };
+ }
 
 __generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
 [ForceInline]
@@ -3298,6 +3454,30 @@ vector<T.Element,4> __texture_gatherCmp(
 }
 
 __generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
+ [ForceInline]
+ [require(spirv, texture_gather)]
+ vector<T.Element,4> __texture_gatherCmp(
+     _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 0, format> texture,
+     SamplerComparisonState s,
+     vector<float, Shape.dimensions+isArray> location,
+     T.Element compareValue,
+     out uint status)
+ {
+     return spirv_asm
+     {
+         OpCapability SparseResidency;
+         %sparseResultType = OpTypeStruct $$uint $$vector<T.Element,4>;
+         %sampledImage:__sampledImageType(texture) = OpSampledImage $texture $s;
+ 
+         %sparseResult:%sparseResultType = OpImageSparseDrefGather %sampledImage $location $compareValue;
+ 
+         %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+         OpStore &status %residentCode;
+         result:$$vector<T.Element,4> = OpCompositeExtract %sparseResult 1;
+     };
+ }
+
+__generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
 [ForceInline]
 [require(glsl_spirv, texture_gather)]
 vector<T.Element,4> __texture_gatherCmp(
@@ -3315,6 +3495,28 @@ vector<T.Element,4> __texture_gatherCmp(
         };
     }
 }
+
+__generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
+ [ForceInline]
+ [require(spirv, texture_gather)]
+ vector<T.Element,4> __texture_gatherCmp(
+     _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 1, format> sampler,
+     vector<float, Shape.dimensions+isArray> location,
+     T.Element compareValue,
+     out uint status)
+ {
+     return spirv_asm
+     {
+         OpCapability SparseResidency;
+         %sparseResultType = OpTypeStruct $$uint $$vector<T.Element,4>;
+ 
+         %sparseResult:%sparseResultType = OpImageSparseDrefGather $sampler $location $compareValue;
+ 
+         %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+         OpStore &status %residentCode;
+         result:$$vector<T.Element,4> = OpCompositeExtract %sparseResult 1;
+     };
+ }
 
 __generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
 [ForceInline]
@@ -3364,6 +3566,33 @@ vector<T.Element,4> __texture_gatherCmp_offset(
 }
 
 __generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
+ [ForceInline]
+ [require(spirv, texture_gather)]
+ vector<T.Element,4> __texture_gatherCmp_offset(
+     _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 0, format> texture,
+     SamplerComparisonState s,
+     vector<float, Shape.dimensions+isArray> location,
+     T.Element compareValue,
+     constexpr vector<int, Shape.planeDimensions> offset,
+     out uint status)
+ {
+     return spirv_asm
+     {
+         OpCapability SparseResidency;
+         %sparseResultType = OpTypeStruct $$uint $$vector<T.Element,4>;
+         %sampledImage:__sampledImageType(texture) = OpSampledImage $texture $s;
+ 
+         %sparseResult:%sparseResultType = OpImageSparseDrefGather %sampledImage $location $compareValue ConstOffset $offset;
+ 
+         %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+         OpStore &status %residentCode;
+         result:$$vector<T.Element,4> = OpCompositeExtract %sparseResult 1;
+     };
+ 
+ }
+ 
+
+__generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
 [ForceInline]
 [require(glsl_spirv, texture_gather)]
 vector<T.Element,4> __texture_gatherCmp_offset(
@@ -3382,6 +3611,29 @@ vector<T.Element,4> __texture_gatherCmp_offset(
         };
     }
 }
+
+__generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
+ [ForceInline]
+ [require(spirv, texture_gather)]
+ vector<T.Element,4> __texture_gatherCmp_offset(
+     _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 1, format> sampler,
+     vector<float, Shape.dimensions+isArray> location,
+     T.Element compareValue,
+     constexpr vector<int, Shape.planeDimensions> offset,
+     out uint status)
+ {
+     return spirv_asm
+     {
+         OpCapability SparseResidency;
+         %sparseResultType = OpTypeStruct $$uint $$vector<T.Element,4>;
+ 
+         %sparseResult:%sparseResultType = OpImageSparseDrefGather $sampler $location $compareValue ConstOffset $offset;
+ 
+         %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+         OpStore &status %residentCode;
+         result:$$vector<T.Element,4> = OpCompositeExtract %sparseResult 1;
+     };
+ }
 
 __generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
 [ForceInline]
@@ -3411,6 +3663,36 @@ vector<T.Element,4> __texture_gatherCmp_offsets(
 }
 
 __generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
+ [ForceInline]
+ [require(spirv, texture_gather)]
+ vector<T.Element,4> __texture_gatherCmp_offsets(
+     _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 0, format> texture,
+     SamplerComparisonState s,
+     vector<float, Shape.dimensions+isArray> location,
+     T.Element compareValue,
+     vector<int, Shape.planeDimensions> offset1,
+     vector<int, Shape.planeDimensions> offset2,
+     vector<int, Shape.planeDimensions> offset3,
+     vector<int, Shape.planeDimensions> offset4,
+     out uint status)
+ {
+     let offsets = __makeArray(offset1,offset2,offset3,offset4);
+     return spirv_asm
+     {
+         OpCapability ImageGatherExtended;
+         OpCapability SparseResidency;
+         %sparseResultType = OpTypeStruct $$uint $$vector<T.Element,4>;
+         %sampledImage:__sampledImageType(texture) = OpSampledImage $texture $s;
+ 
+         %sparseResult:%sparseResultType = OpImageSparseDrefGather %sampledImage $location $compareValue ConstOffsets $offsets;
+ 
+         %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+         OpStore &status %residentCode;
+         result:$$vector<T.Element,4> = OpCompositeExtract %sparseResult 1;
+     };
+ }
+ 
+__generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
 [ForceInline]
 [require(glsl_spirv, texture_gather)]
 vector<T.Element,4> __texture_gatherCmp_offsets(
@@ -3435,6 +3717,34 @@ vector<T.Element,4> __texture_gatherCmp_offsets(
     }
 }
 
+__generic<T:ITexelElement, Shape: __ITextureShape, let isArray:int, let sampleCount:int, let access:int, let isShadow:int, let format:int>
+ [ForceInline]
+ [require(spirv, texture_gather)]
+ vector<T.Element,4> __texture_gatherCmp_offsets(
+     _Texture<T, Shape, isArray, 0, sampleCount, access, isShadow, 1, format> sampler,
+     vector<float, Shape.dimensions+isArray> location,
+     T.Element compareValue,
+     vector<int, Shape.planeDimensions> offset1,
+     vector<int, Shape.planeDimensions> offset2,
+     vector<int, Shape.planeDimensions> offset3,
+     vector<int, Shape.planeDimensions> offset4,
+     out uint status)
+ {
+     let offsets = __makeArray(offset1,offset2,offset3,offset4);
+     return spirv_asm
+     {
+         OpCapability ImageGatherExtended;
+         OpCapability SparseResidency;
+         %sparseResultType = OpTypeStruct $$uint $$vector<T.Element,4>;
+ 
+         %sparseResult:%sparseResultType = OpImageSparseDrefGather $sampler $location $compareValue ConstOffsets $offsets;
+ 
+         %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+         OpStore &status %residentCode;
+         result:$$vector<T.Element,4> = OpCompositeExtract %sparseResult 1;
+     };
+ }
+ 
 ${{{{
 for (int isCombined = 0; isCombined < 2; isCombined++)
 {
@@ -3486,7 +3796,7 @@ ${{{{
     }
 
     [ForceInline]
-    [require(hlsl, texture_gather)]
+    [require(hlsl_spirv, texture_gather)]
     vector<T.Element,4> Gather$(compareFunc)$(componentFunc)(
         $(samplerParam)
         vector<float, Shape.dimensions+isArray> location
@@ -3499,6 +3809,8 @@ ${{{{
         __target_switch
         {
         case hlsl: __intrinsic_asm ".Gather$(compareFunc)$(componentFunc)";
+        case spirv:
+             return __texture_gather$(compareFunc)(this $(samplerArg), location $(compareArg) $(componentArg), status);
         }
     }
 
@@ -3526,7 +3838,7 @@ ${{{{
     }
 
     [ForceInline]
-    [require(hlsl, texture_gather)]
+    [require(hlsl_spirv, texture_gather)]
     vector<T.Element,4> Gather$(compareFunc)$(componentFunc)(
         $(samplerParam)
         vector<float, Shape.dimensions+isArray> location
@@ -3540,6 +3852,8 @@ ${{{{
         __target_switch
         {
         case hlsl: __intrinsic_asm ".Gather$(compareFunc)$(componentFunc)";
+        case spirv:
+             return __texture_gather$(compareFunc)_offset(this $(samplerArg), location $(compareArg), offset $(componentArg), status);
         }
     }
 
@@ -3567,7 +3881,7 @@ ${{{{
     }
 
     [ForceInline]
-    [require(hlsl, texture_gather)]
+    [require(hlsl_spirv, texture_gather)]
     vector<T.Element,4> Gather$(compareFunc)$(componentFunc)(
         $(samplerParam)
         vector<float, Shape.dimensions+isArray> location
@@ -3584,6 +3898,8 @@ ${{{{
         __target_switch
         {
         case hlsl: __intrinsic_asm ".Gather$(compareFunc)$(componentFunc)";
+        case spirv:
+             return __texture_gather$(compareFunc)_offsets<T>(this $(samplerArg), location $(compareArg), offset1,offset2,offset3,offset4 $(componentArg), status);
         }
     }
 
@@ -3772,12 +4088,47 @@ extension _Texture<T,Shape,isArray,0,sampleCount,0,isShadow,isCombined,format>
 
     [__readNone]
     [ForceInline]
-    [require(hlsl, texture_sm_4_1_samplerless)]
+    [require(hlsl_spirv, texture_sm_4_1_samplerless)]
     T Load(vector<int, Shape.dimensions+isArray+1> location, constexpr vector<int, Shape.planeDimensions> offset, out uint status)
     {
         __target_switch
         {
         case hlsl: __intrinsic_asm ".Load";
+        case spirv:
+             const int lodLoc = Shape.dimensions+isArray;
+             let coord = __vectorReshape<Shape.dimensions+isArray>(location);
+             let lod = location[lodLoc];
+             if (isCombined != 0)
+             {
+                 return spirv_asm
+                 {
+                     OpCapability SparseResidency;
+                     %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+                     %image:__imageType(this) = OpImage $this;
+ 
+                     %sparseResult:%sparseResultType = OpImageSparseFetch %image $coord Lod|ConstOffset $lod $offset;
+                     %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                     %sampled:__sampledType(T) = OpCompositeExtract %sparseResult 1;
+ 
+                     OpStore &status %residentCode;
+                     __truncate $$T result __sampledType(T) %sampled;
+                 };
+             }
+             else
+             {
+                 return spirv_asm
+                 {
+                     OpCapability SparseResidency;
+                     %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+ 
+                     %sparseResult:%sparseResultType = OpImageSparseFetch $this $coord Lod|ConstOffset $lod $offset;
+                     %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                     %sampled:__sampledType(T) = OpCompositeExtract  %sparseResult 1;
+ 
+                     OpStore &status %residentCode;
+                     __truncate $$T result __sampledType(T) %sampled;
+                 };
+             }
         default:
             status = 0;
             return Load(location, offset);
@@ -3952,12 +4303,44 @@ extension _Texture<T,Shape,isArray,1,sampleCount,0,isShadow,isCombined,format>
 
     [__readNone]
     [ForceInline]
-    [require(hlsl, texture_sm_4_1_samplerless)]
+    [require(hlsl_spirv, texture_sm_4_1_samplerless)]
     T Load(vector<int, Shape.dimensions+isArray> location, int sampleIndex, constexpr vector<int, Shape.planeDimensions> offset, out uint status)
     {
         __target_switch
         {
         case hlsl: __intrinsic_asm ".Load";
+        case spirv:
+             if (isCombined != 0)
+             {
+                 return spirv_asm
+                 {
+                     OpCapability SparseResidency;
+                     %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+                     %image:__imageType(this) = OpImage $this;
+ 
+                     %sparseResult:%sparseResultType = OpImageSparseFetch %image $location ConstOffset|Sample $offset $sampleIndex;
+                     %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                     %sampled:__sampledType(T) = OpCompositeExtract %sparseResult 1;
+ 
+                     OpStore &status %residentCode;
+                     __truncate $$T result __sampledType(T) %sampled;
+                 };
+             }
+             else
+             {
+                 return spirv_asm
+                 {
+                     OpCapability SparseResidency;
+                     %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+ 
+                     %sparseResult:%sparseResultType = OpImageSparseFetch $this $location ConstOffset|Sample $offset $sampleIndex;
+                     %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                     %sampled:__sampledType(T) = OpCompositeExtract %sparseResult 1;
+ 
+                     OpStore &status %residentCode;
+                     __truncate $$T result __sampledType(T) %sampled;
+                 };
+             }
         default:
             status = 0;
             return Load(location, sampleIndex, offset);
@@ -4188,6 +4571,19 @@ extension _Texture<T,Shape,isArray,0,sampleCount,$(access),isShadow, 0,format>
         case hlsl:
         case cpp:
             __intrinsic_asm ".Load";
+        case spirv:
+             return spirv_asm
+             {
+                 OpCapability SparseResidency;
+                 %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+ 
+                 %sparseResult:%sparseResultType = OpImageSparseRead $this $location ConstOffset $offset;
+                 %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                 %sampled:__sampledType(T) = OpCompositeExtract %sparseResult 1;
+ 
+                 OpStore &status %residentCode;
+                 __truncate $$T result __sampledType(T) %sampled;
+             };    
         default:
             status = 0;
             return Load(location, offset);
@@ -4445,6 +4841,19 @@ extension _Texture<T,Shape,isArray,1,sampleCount,$(access),isShadow, 0,format>
         case hlsl:
         case cpp:
             __intrinsic_asm ".Load";
+        case spirv:
+             return spirv_asm
+             {
+                 OpCapability SparseResidency;
+                 %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+ 
+                 %sparseResult:%sparseResultType = OpImageSparseRead $this $location ConstOffset|Sample $offset $sampleIndex;
+                 %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                 %sampled:__sampledType(T) = OpCompositeExtract  %sparseResult 1;
+ 
+                 OpStore &status %residentCode;
+                 __truncate $$T result __sampledType(T) %sampled;
+             };
         default:
             status = 0;
             return Load(location, sampleIndex, offset);
@@ -16334,9 +16743,10 @@ for (int aa = 0; aa < kBaseBufferAccessLevelCount; ++aa)
     char const* glslTextureSizeFunc = (isReadOnly) ? "textureSize" : "imageSize";
     char const* glslLoadFuncName = (isReadOnly) ? "texelFetch" : "imageLoad";
     char const* spvLoadInstName = (isReadOnly) ? "OpImageFetch" : "OpImageRead";
+    char const* spvSparseLoadInstName = (isReadOnly) ? "OpImageSparseFetch" : "OpImageSparseRead";
     char const* requireToSetQuery = (isReadOnly) ? "[require(glsl_hlsl_metal_spirv, texture_size)]" : "[require(glsl_hlsl_metal_spirv, image_size)]";
     char const* requireToSet = (isReadOnly) ? "[require(glsl_hlsl_metal_spirv, texture_sm_4_1)]" : "[require(glsl_hlsl_metal_spirv, texture_sm_4_1_compute_fragment)]";
-    char const* requireToSet_onlyHLSL = (isReadOnly) ? "[require(hlsl, texture_sm_4_1)]" : "[require(hlsl, texture_sm_4_1_compute_fragment)]";
+    char const* requireToSet_onlyHLSLSpirv = (isReadOnly) ? "[require(hlsl_spirv, texture_sm_4_1)]" : "[require(hlsl_spirv, texture_sm_4_1_compute_fragment)]";
 }}}}
 
 __generic<T:ITexelElement, let format:int>
@@ -16380,12 +16790,25 @@ extension _Texture<T, __ShapeBuffer, 0, 0, 0, $(aa), 0, 0, format>
     }
 
     $(isReadOnly?"[__readNone] ":"")
-    $(requireToSet_onlyHLSL)
+    $(requireToSet_onlyHLSLSpirv)
     T Load(int location, out uint status)
     {
         __target_switch
         {
         case hlsl: __intrinsic_asm ".Load";
+        case spirv:
+             return spirv_asm
+             {
+                 OpCapability SparseResidency;
+                 %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+ 
+                 %sparseResult:%sparseResultType = $(spvSparseLoadInstName) $this $location;
+                 %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                 %sampled:__sampledType(T) = OpCompositeExtract %sparseResult 1;
+ 
+                 OpStore &status %residentCode;
+                 __truncate $$T result __sampledType(T) %sampled;
+             };
         }
     }
 
