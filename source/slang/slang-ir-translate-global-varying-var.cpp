@@ -28,6 +28,10 @@ struct GlobalVarTranslationContext
                 entryPoints.add(inst);
             else if (inst->getOp() == kIROp_GetWorkGroupSize)
                 getWorkGroupSizeInsts.add(inst);
+            else if (inst->getOp() == kIROp_GlobalVar)
+            {
+                printf("FW: ISA global var!\n");
+            }
         }
         for (auto inst : getWorkGroupSizeInsts)
             materializeGetWorkGroupSize(module, referencingEntryPoints, inst);
@@ -51,6 +55,17 @@ struct GlobalVarTranslationContext
                         {
                             inputVars.add(inst);
                         }
+                    }
+                }
+                else if (inst->getOp() == kIROp_GlobalVar)
+                {
+                    if (inst->findDecoration<IRGlobalOutputDecoration>())
+                    {
+                        outputVars.add(inst);
+                    }
+                    if (inst->findDecoration<IRGlobalInputDecoration>())
+                    {
+                        inputVars.add(inst);
                     }
                 }
             }

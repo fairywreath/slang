@@ -2340,6 +2340,7 @@ void addVarDecorations(IRGenContext* context, IRInst* inst, Decl* decl)
         }
         else if (as<InModifier>(mod))
         {
+            printf("FW global input decor added!\n");
             builder->addSimpleDecoration<IRGlobalInputDecoration>(inst);
         }
         else if (auto glslLocationMod = as<GLSLLocationAttribute>(mod))

@@ -220,6 +220,7 @@ void stripWrapExistential(IRModule* module)
 
 void lowerGenerics(TargetProgram* targetProgram, IRModule* module, DiagnosticSink* sink)
 {
+    return;
     SLANG_PROFILE;
 
     SharedGenericsLoweringContext sharedContext(module);

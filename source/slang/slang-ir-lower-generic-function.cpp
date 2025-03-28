@@ -432,6 +432,6 @@ void lowerGenericFunctions(SharedGenericsLoweringContext* sharedContext)
 {
     GenericFunctionLoweringContext context;
     context.sharedContext = sharedContext;
-    context.processModule();
+    // context.processModule();
 }
 } // namespace Slang

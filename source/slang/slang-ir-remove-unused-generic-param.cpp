@@ -127,7 +127,8 @@ struct RemoveUnusedGenericParamContext : InstPassBase
 bool removeUnusedGenericParam(IRModule* module)
 {
     RemoveUnusedGenericParamContext context = RemoveUnusedGenericParamContext(module);
-    return context.processModule();
+    // return context.processModule();
+    return true;
 }
 
 } // namespace Slang
