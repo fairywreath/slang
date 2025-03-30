@@ -3772,12 +3772,83 @@ extension _Texture<T,Shape,isArray,0,sampleCount,0,isShadow,isCombined,format>
 
     [__readNone]
     [ForceInline]
-    [require(hlsl, texture_sm_4_1_samplerless)]
+    [require(hlsl_spirv, texture_sm_4_1_samplerless)]
+    [require(hlsl_spirv, texture_sm_4_1_samplerless)]
     T Load(vector<int, Shape.dimensions+isArray+1> location, constexpr vector<int, Shape.planeDimensions> offset, out uint status)
     {
         __target_switch
         {
         case hlsl: __intrinsic_asm ".Load";
+        case spirv:
+             const int lodLoc = Shape.dimensions+isArray;
+             let coord = __vectorReshape<Shape.dimensions+isArray>(location);
+             let lod = location[lodLoc];
+             if (isCombined != 0)
+             {
+                 return spirv_asm
+                 {
+                     OpCapability SparseResidency;
+                     %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+                     %image:__imageType(this) = OpImage $this;
+ 
+                     %sparseResult:%sparseResultType = OpImageSparseFetch %image $coord Lod|ConstOffset $lod $offset;
+                     %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                     %sampled:__sampledType(T) = OpCompositeExtract %sparseResult 1;
+ 
+                     OpStore &status %residentCode;
+                     __truncate $$T result __sampledType(T) %sampled;
+                 };
+             }
+             else
+             {
+                 return spirv_asm
+                 {
+                     OpCapability SparseResidency;
+                     %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+ 
+                     %sparseResult:%sparseResultType = OpImageSparseFetch $this $coord Lod|ConstOffset $lod $offset;
+                     %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                     %sampled:__sampledType(T) = OpCompositeExtract  %sparseResult 1;
+ 
+                     OpStore &status %residentCode;
+                     __truncate $$T result __sampledType(T) %sampled;
+                 };
+             }
+        case spirv:
+             const int lodLoc = Shape.dimensions+isArray;
+             let coord = __vectorReshape<Shape.dimensions+isArray>(location);
+             let lod = location[lodLoc];
+             if (isCombined != 0)
+             {
+                 return spirv_asm
+                 {
+                     OpCapability SparseResidency;
+                     %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+                     %image:__imageType(this) = OpImage $this;
+ 
+                     %sparseResult:%sparseResultType = OpImageSparseFetch %image $coord Lod|ConstOffset $lod $offset;
+                     %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                     %sampled:__sampledType(T) = OpCompositeExtract %sparseResult 1;
+ 
+                     OpStore &status %residentCode;
+                     __truncate $$T result __sampledType(T) %sampled;
+                 };
+             }
+             else
+             {
+                 return spirv_asm
+                 {
+                     OpCapability SparseResidency;
+                     %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+ 
+                     %sparseResult:%sparseResultType = OpImageSparseFetch $this $coord Lod|ConstOffset $lod $offset;
+                     %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                     %sampled:__sampledType(T) = OpCompositeExtract  %sparseResult 1;
+ 
+                     OpStore &status %residentCode;
+                     __truncate $$T result __sampledType(T) %sampled;
+                 };
+             }
         default:
             status = 0;
             return Load(location, offset);
@@ -3952,12 +4023,44 @@ extension _Texture<T,Shape,isArray,1,sampleCount,0,isShadow,isCombined,format>
 
     [__readNone]
     [ForceInline]
-    [require(hlsl, texture_sm_4_1_samplerless)]
+    [require(hlsl_spirv, texture_sm_4_1_samplerless)]
     T Load(vector<int, Shape.dimensions+isArray> location, int sampleIndex, constexpr vector<int, Shape.planeDimensions> offset, out uint status)
     {
         __target_switch
         {
         case hlsl: __intrinsic_asm ".Load";
+        case spirv:
+             if (isCombined != 0)
+             {
+                 return spirv_asm
+                 {
+                     OpCapability SparseResidency;
+                     %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+                     %image:__imageType(this) = OpImage $this;
+ 
+                     %sparseResult:%sparseResultType = OpImageSparseFetch %image $location ConstOffset|Sample $offset $sampleIndex;
+                     %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                     %sampled:__sampledType(T) = OpCompositeExtract %sparseResult 1;
+ 
+                     OpStore &status %residentCode;
+                     __truncate $$T result __sampledType(T) %sampled;
+                 };
+             }
+             else
+             {
+                 return spirv_asm
+                 {
+                     OpCapability SparseResidency;
+                     %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+ 
+                     %sparseResult:%sparseResultType = OpImageSparseFetch $this $location ConstOffset|Sample $offset $sampleIndex;
+                     %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                     %sampled:__sampledType(T) = OpCompositeExtract %sparseResult 1;
+ 
+                     OpStore &status %residentCode;
+                     __truncate $$T result __sampledType(T) %sampled;
+                 };
+             }
         default:
             status = 0;
             return Load(location, sampleIndex, offset);
@@ -4188,6 +4291,19 @@ extension _Texture<T,Shape,isArray,0,sampleCount,$(access),isShadow, 0,format>
         case hlsl:
         case cpp:
             __intrinsic_asm ".Load";
+        case spirv:
+             return spirv_asm
+             {
+                 OpCapability SparseResidency;
+                 %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+ 
+                 %sparseResult:%sparseResultType = OpImageSparseRead $this $location ConstOffset $offset;
+                 %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                 %sampled:__sampledType(T) = OpCompositeExtract %sparseResult 1;
+ 
+                 OpStore &status %residentCode;
+                 __truncate $$T result __sampledType(T) %sampled;
+             };
         default:
             status = 0;
             return Load(location, offset);
@@ -4444,7 +4560,7 @@ extension _Texture<T,Shape,isArray,1,sampleCount,$(access),isShadow, 0,format>
         {
         case hlsl:
         case cpp:
-            __intrinsic_asm ".Load";
+            __intrinsic_asm ".Load";  
         default:
             status = 0;
             return Load(location, sampleIndex, offset);
@@ -16334,9 +16450,10 @@ for (int aa = 0; aa < kBaseBufferAccessLevelCount; ++aa)
     char const* glslTextureSizeFunc = (isReadOnly) ? "textureSize" : "imageSize";
     char const* glslLoadFuncName = (isReadOnly) ? "texelFetch" : "imageLoad";
     char const* spvLoadInstName = (isReadOnly) ? "OpImageFetch" : "OpImageRead";
+    char const* spvSparseLoadInstName = (isReadOnly) ? "OpImageSparseFetch" : "OpImageSparseRead";
     char const* requireToSetQuery = (isReadOnly) ? "[require(glsl_hlsl_metal_spirv, texture_size)]" : "[require(glsl_hlsl_metal_spirv, image_size)]";
     char const* requireToSet = (isReadOnly) ? "[require(glsl_hlsl_metal_spirv, texture_sm_4_1)]" : "[require(glsl_hlsl_metal_spirv, texture_sm_4_1_compute_fragment)]";
-    char const* requireToSet_onlyHLSL = (isReadOnly) ? "[require(hlsl, texture_sm_4_1)]" : "[require(hlsl, texture_sm_4_1_compute_fragment)]";
+    char const* requireToSet_onlyHLSLSpirv = (isReadOnly) ? "[require(hlsl_spirv, texture_sm_4_1)]" : "[require(hlsl_spirv, texture_sm_4_1_compute_fragment)]";
 }}}}
 
 __generic<T:ITexelElement, let format:int>
@@ -16380,12 +16497,25 @@ extension _Texture<T, __ShapeBuffer, 0, 0, 0, $(aa), 0, 0, format>
     }
 
     $(isReadOnly?"[__readNone] ":"")
-    $(requireToSet_onlyHLSL)
+    $(requireToSet_onlyHLSLSpirv)
     T Load(int location, out uint status)
     {
         __target_switch
         {
         case hlsl: __intrinsic_asm ".Load";
+        case spirv:
+             return spirv_asm
+             {
+                 OpCapability SparseResidency;
+                 %sparseResultType = OpTypeStruct $$uint __sampledType(T);
+ 
+                 %sparseResult:%sparseResultType = $(spvSparseLoadInstName) $this $location;
+                 %residentCode:$$uint = OpCompositeExtract %sparseResult 0;
+                 %sampled:__sampledType(T) = OpCompositeExtract %sparseResult 1;
+ 
+                 OpStore &status %residentCode;
+                 __truncate $$T result __sampledType(T) %sampled;
+             };
         }
     }
 
