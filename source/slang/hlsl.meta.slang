@@ -16430,7 +16430,6 @@ for (int aa = 0; aa < kBaseBufferAccessLevelCount; ++aa)
     char const* spvSparseLoadInstName = (isReadOnly) ? "OpImageSparseFetch" : "OpImageSparseRead";
     char const* requireToSetQuery = (isReadOnly) ? "[require(glsl_hlsl_metal_spirv, texture_size)]" : "[require(glsl_hlsl_metal_spirv, image_size)]";
     char const* requireToSet = (isReadOnly) ? "[require(glsl_hlsl_metal_spirv, texture_sm_4_1)]" : "[require(glsl_hlsl_metal_spirv, texture_sm_4_1_compute_fragment)]";
-    char const* requireToSet_onlyHLSL = (isReadOnly) ? "[require(hlsl, texture_sm_4_1)]" : "[require(hlsl, texture_sm_4_1_compute_fragment)]";
     char const* requireToSet_onlyHLSLSpirv = (isReadOnly) ? "[require(hlsl_spirv, texture_sm_4_1)]" : "[require(hlsl_spirv, texture_sm_4_1_compute_fragment)]";
 }}}}
 
