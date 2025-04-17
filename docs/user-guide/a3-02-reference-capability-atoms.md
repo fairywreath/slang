@@ -890,9 +890,6 @@ Compound Capabilities
 `shadermemorycontrol`
 > (gfx targets) Capabilities needed to use memory barriers
 
-`wave_multi_prefix`
-> Capabilities needed to use HLSL tier wave operations
-
 `bufferreference`
 > Capabilities needed to use GLSL buffer-reference's
 
@@ -1123,6 +1120,9 @@ Compound Capabilities
 
 `subgroup_partitioned`
 > Capabilities required to use GLSL-style subgroup operations 'subgroup_partitioned'
+
+`wave_multi_prefix`
+> Capabilities needed to use HLSL wave multi prefix operations
 
 `atomic_glsl_hlsl_nvapi_cuda_metal_float1`
 > (All implemented targets) Capabilities required to use atomic operations of GLSL tier-1 float atomics
