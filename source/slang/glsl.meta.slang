@@ -8419,6 +8419,23 @@ public $(item.name) atomicAdd(inout $(item.name) mem, $(item.name) data)
 __glsl_version(430)
 [ForceInline]
 [require(glsl_spirv, atomic_glsl)]
+__intrinsic_op($(kIROp_AtomicAdd))
+$(item.name) atomicAddWithSemantics(inout $(item.name) mem, $(item.name) data, constexpr int scope, constexpr int storage, constexpr int semantics);
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
+public $(item.name) atomicAdd(inout $(item.name) mem, $(item.name) data, constexpr int scope, constexpr int storage, constexpr int semantics)
+{
+    typeRequireChecks_atomic_using_float1_tier<$(item.name)>();
+    typeRequireChecks_atomic_using_add<$(item.name)>();
+    return atomicAddWithSemantics(mem, data, scope, storage, semantics);
+}
+
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
 __intrinsic_op($(kIROp_AtomicMin))
 $(item.name) atomicMinWithOrder(inout $(item.name) mem, $(item.name) data, MemoryOrder order);
 
@@ -8431,6 +8448,23 @@ public $(item.name) atomicMin(inout $(item.name) mem, $(item.name) data)
     typeRequireChecks_atomic_using_MinMax<$(item.name)>();
     return atomicMinWithOrder(mem, data, MemoryOrder::Relaxed);
 }
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
+__intrinsic_op($(kIROp_AtomicMin))
+$(item.name) atomicMinWithSemantics(inout $(item.name) mem, $(item.name) data, constexpr int scope, constexpr int storage, constexpr int semantics);
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
+public $(item.name) atomicMin(inout $(item.name) mem, $(item.name) data, constexpr int scope, constexpr int storage, constexpr int semantics)
+{
+    typeRequireChecks_atomic_using_float2_tier<$(item.name)>();
+    typeRequireChecks_atomic_using_MinMax<$(item.name)>();
+    return atomicMinWithSemantics(mem, data, scope, storage, semantics);
+}
+
 
 __glsl_version(430)
 [ForceInline]
@@ -8451,6 +8485,23 @@ public $(item.name) atomicMax(inout $(item.name) mem, $(item.name) data)
 __glsl_version(430)
 [ForceInline]
 [require(glsl_spirv, atomic_glsl)]
+__intrinsic_op($(kIROp_AtomicMax))
+$(item.name) atomicMaxWithSemantics(inout $(item.name) mem, $(item.name) data, constexpr int scope, constexpr int storage, constexpr int semantics);
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
+public $(item.name) atomicMax(inout $(item.name) mem, $(item.name) data, constexpr int scope, constexpr int storage, constexpr int semantics)
+{
+    typeRequireChecks_atomic_using_float2_tier<$(item.name)>();
+    typeRequireChecks_atomic_using_MinMax<$(item.name)>();
+    return atomicMaxWithSemantics(mem, data, scope, storage, semantics);
+}
+
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
 __intrinsic_op($(kIROp_AtomicExchange))
 $(item.name) atomicExchangeWithOrder(inout $(item.name) mem, $(item.name) data, MemoryOrder order);
 
@@ -8461,6 +8512,21 @@ public $(item.name) atomicExchange(inout $(item.name) mem, $(item.name) data)
 {
     typeRequireChecks_atomic_using_float1_tier<$(item.name)>();
     return atomicExchangeWithOrder(mem, data, MemoryOrder::Relaxed);
+}
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
+__intrinsic_op($(kIROp_AtomicExchange))
+$(item.name) atomicExchangeWithSemantics(inout $(item.name) mem, $(item.name) data, constexpr int scope, constexpr int storage, constexpr int semantics);
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
+public $(item.name) atomicExchange(inout $(item.name) mem, $(item.name) data, constexpr int scope, constexpr int storage, constexpr int semantics)
+{
+    typeRequireChecks_atomic_using_float1_tier<$(item.name)>();
+    return atomicExchangeWithSemantics(mem, data, scope, storage, semantics);
 }
 
 ${{{{
@@ -8488,6 +8554,23 @@ public $(item.name) atomicAnd(inout $(item.name) mem, $(item.name) data)
 __glsl_version(430)
 [ForceInline]
 [require(glsl_spirv, atomic_glsl)]
+__intrinsic_op($(kIROp_AtomicAnd))
+$(item.name) atomicAndWithSemantics(inout $(item.name) mem, $(item.name) data, constexpr int scope, constexpr int storage, constexpr int semantics);
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
+public $(item.name) atomicAnd(inout $(item.name) mem, $(item.name) data, constexpr int scope, constexpr int storage, constexpr int semantics)
+{
+    typeRequireChecks_atomic_using_float0_tier<$(item.name)>();
+    typeRequireChecks_atomic_using_Logical_CAS<$(item.name)>();
+    return atomicAndWithSemantics(mem, data, scope, storage, semantics);
+}
+
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
 __intrinsic_op($(kIROp_AtomicOr))
 $(item.name) atomicOrWithOrder(inout $(item.name) mem, $(item.name) data, MemoryOrder order);
 
@@ -8499,6 +8582,22 @@ public $(item.name) atomicOr(inout $(item.name) mem, $(item.name) data)
     typeRequireChecks_atomic_using_float0_tier<$(item.name)>();
     typeRequireChecks_atomic_using_Logical_CAS<$(item.name)>();
     return atomicOrWithOrder(mem, data, MemoryOrder::Relaxed);
+}
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
+__intrinsic_op($(kIROp_AtomicOr))
+$(item.name) atomicOrWithSemantics(inout $(item.name) mem, $(item.name) data, constexpr int scope, constexpr int storage, constexpr int semantics);
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
+public $(item.name) atomicOr(inout $(item.name) mem, $(item.name) data, constexpr int scope, constexpr int storage, constexpr int semantics)
+{
+    typeRequireChecks_atomic_using_float0_tier<$(item.name)>();
+    typeRequireChecks_atomic_using_Logical_CAS<$(item.name)>();
+    return atomicOrWithSemantics(mem, data, scope, storage, semantics);
 }
 
 
@@ -8521,6 +8620,23 @@ public $(item.name) atomicXor(inout $(item.name) mem, $(item.name) data)
 __glsl_version(430)
 [ForceInline]
 [require(glsl_spirv, atomic_glsl)]
+__intrinsic_op($(kIROp_AtomicXor))
+$(item.name) atomicXorWithSemantics(inout $(item.name) mem, $(item.name) data, constexpr int scope, constexpr int storage, constexpr int semantics);
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
+public $(item.name) atomicXor(inout $(item.name) mem, $(item.name) data, constexpr int scope, constexpr int storage, constexpr int semantics)
+{
+    typeRequireChecks_atomic_using_float0_tier<$(item.name)>();
+    typeRequireChecks_atomic_using_Logical_CAS<$(item.name)>();
+    return atomicXorWithSemantics(mem, data, scope, storage, semantics);
+}
+
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
 __intrinsic_op($(kIROp_AtomicCompareExchange))
 $(item.name) atomicCompSwapWithOrder(inout $(item.name) mem, $(item.name) compare, $(item.name) data, MemoryOrder successOrder, MemoryOrder failOrder);
 
@@ -8532,6 +8648,22 @@ public $(item.name) atomicCompSwap(inout $(item.name) mem, $(item.name) compare,
     typeRequireChecks_atomic_using_float0_tier<$(item.name)>();
     typeRequireChecks_atomic_using_Logical_CAS<$(item.name)>();
     return atomicCompSwapWithOrder(mem, compare, data, MemoryOrder::Relaxed, MemoryOrder::Relaxed);
+}
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
+__intrinsic_op($(kIROp_AtomicCompareExchange))
+public $(item.name) atomicCompSwapWithSemantics(inout $(item.name) mem, $(item.name) compare, $(item.name) data, constexpr int scope, constexpr int storageEqual, constexpr int semanticsEqual, constexpr int storageUnequal, constexpr int semanticsUnequal);
+
+__glsl_version(430)
+[ForceInline]
+[require(glsl_spirv, atomic_glsl)]
+public $(item.name) atomicCompSwap(inout $(item.name) mem, $(item.name) compare, $(item.name) data, constexpr int scope, constexpr int storageEqual, constexpr int semanticsEqual, constexpr int storageUnequal, constexpr int semanticsUnequal)
+{
+    typeRequireChecks_atomic_using_float0_tier<$(item.name)>();
+    typeRequireChecks_atomic_using_Logical_CAS<$(item.name)>();
+    return atomicCompSwapWithSemantics(mem, compare, data, scope, storageEqual, semanticsEqual, storageUnequal, semanticsUnequal);
 }
 
 ${{{{
@@ -9412,3 +9544,28 @@ public void debugPrintfEXT<each T>(NativeString format, expand each T args)
 {
     printf(format, args);
 }
+
+//
+// GL_KHR_memory_scope_semantics enums.
+//
+
+public static const int gl_ScopeDevice      = 1;
+public static const int gl_ScopeWorkgroup   = 2;
+public static const int gl_ScopeSubgroup    = 3;
+public static const int gl_ScopeInvocation  = 4;
+public static const int gl_ScopeQueueFamily = 5;
+
+public static const int gl_SemanticsRelaxed         = 0x0;
+public static const int gl_SemanticsAcquire         = 0x2;
+public static const int gl_SemanticsRelease         = 0x4;
+public static const int gl_SemanticsAcquireRelease  = 0x8;
+public static const int gl_SemanticsMakeAvailable   = 0x2000;
+public static const int gl_SemanticsMakeVisible     = 0x4000;
+public static const int gl_SemanticsVolatile        = 0x8000;
+
+public static const int gl_StorageSemanticsNone     = 0x0;
+public static const int gl_StorageSemanticsBuffer   = 0x40;
+public static const int gl_StorageSemanticsShared   = 0x100;
+public static const int gl_StorageSemanticsImage    = 0x800;
+public static const int gl_StorageSemanticsOutput   = 0x1000;
+

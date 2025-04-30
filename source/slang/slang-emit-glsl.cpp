@@ -2751,7 +2751,7 @@ void GLSLSourceEmitter::emitAtomicImageCoord(IRImageSubscript* inst)
 
 bool GLSLSourceEmitter::tryEmitInstStmtImpl(IRInst* inst)
 {
-    auto requireAtomicExtIfNeeded = [&]()
+    const auto requireAtomicExtIfNeeded = [&]()
     {
         if (isFloatingType(inst->getDataType()))
         {
@@ -2764,7 +2764,25 @@ bool GLSLSourceEmitter::tryEmitInstStmtImpl(IRInst* inst)
                 _requireGLSLExtension(toSlice("GL_EXT_shader_atomic_int64"));
             }
         }
+        if (inst->getOperandCount() == 5)
+        {
+            _requireGLSLExtension(toSlice("GL_KHR_memory_scope_semantics"));
+        }
     };
+
+    const auto maybeEmitAtomicSemanticsOperands = [&]()
+    {
+        if (inst->getOperandCount() == 5)
+        {
+            m_writer->emit(", ");
+            emitOperand(inst->getOperand(2), getInfo(EmitOp::General));
+            m_writer->emit(", ");
+            emitOperand(inst->getOperand(3), getInfo(EmitOp::General));
+            m_writer->emit(", ");
+            emitOperand(inst->getOperand(4), getInfo(EmitOp::General));
+        }
+    };
+
     switch (inst->getOp())
     {
     case kIROp_StructuredBufferGetDimensions:
@@ -2836,6 +2854,7 @@ bool GLSLSourceEmitter::tryEmitInstStmtImpl(IRInst* inst)
             }
             m_writer->emit(", ");
             emitOperand(inst->getOperand(1), getInfo(EmitOp::General));
+            maybeEmitAtomicSemanticsOperands();
             m_writer->emit(");\n");
             return true;
         }
@@ -2878,6 +2897,7 @@ bool GLSLSourceEmitter::tryEmitInstStmtImpl(IRInst* inst)
             }
             m_writer->emit(", ");
             emitOperand(inst->getOperand(1), getInfo(EmitOp::General));
+            maybeEmitAtomicSemanticsOperands();
             m_writer->emit(");\n");
             return true;
         }
@@ -2898,6 +2918,7 @@ bool GLSLSourceEmitter::tryEmitInstStmtImpl(IRInst* inst)
             }
             m_writer->emit(", -(");
             emitOperand(inst->getOperand(1), getInfo(EmitOp::General));
+            maybeEmitAtomicSemanticsOperands();
             m_writer->emit("));\n");
             return true;
         }
@@ -2918,6 +2939,7 @@ bool GLSLSourceEmitter::tryEmitInstStmtImpl(IRInst* inst)
             }
             m_writer->emit(", ");
             emitOperand(inst->getOperand(1), getInfo(EmitOp::General));
+            maybeEmitAtomicSemanticsOperands();
             m_writer->emit(");\n");
             return true;
         }
@@ -2938,6 +2960,7 @@ bool GLSLSourceEmitter::tryEmitInstStmtImpl(IRInst* inst)
             }
             m_writer->emit(", ");
             emitOperand(inst->getOperand(1), getInfo(EmitOp::General));
+            maybeEmitAtomicSemanticsOperands();
             m_writer->emit(");\n");
             return true;
         }
@@ -2958,6 +2981,7 @@ bool GLSLSourceEmitter::tryEmitInstStmtImpl(IRInst* inst)
             }
             m_writer->emit(", ");
             emitOperand(inst->getOperand(1), getInfo(EmitOp::General));
+            maybeEmitAtomicSemanticsOperands();
             m_writer->emit(");\n");
             return true;
         }
@@ -2978,6 +3002,7 @@ bool GLSLSourceEmitter::tryEmitInstStmtImpl(IRInst* inst)
             }
             m_writer->emit(", ");
             emitOperand(inst->getOperand(1), getInfo(EmitOp::General));
+            maybeEmitAtomicSemanticsOperands();
             m_writer->emit(");\n");
             return true;
         }
@@ -2998,6 +3023,7 @@ bool GLSLSourceEmitter::tryEmitInstStmtImpl(IRInst* inst)
             }
             m_writer->emit(", ");
             emitOperand(inst->getOperand(1), getInfo(EmitOp::General));
+            maybeEmitAtomicSemanticsOperands();
             m_writer->emit(");\n");
             return true;
         }

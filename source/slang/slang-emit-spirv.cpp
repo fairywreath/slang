@@ -4011,10 +4011,6 @@ struct SPIRVEmitContext : public SourceEmitterBase, public SPIRVEmitSharedContex
         case kIROp_AtomicXor:
             {
                 IRBuilder builder{inst};
-                const auto memoryScope =
-                    emitIntConstant(IRIntegerValue{SpvScopeDevice}, builder.getUIntType());
-                const auto memorySemantics =
-                    emitMemorySemanticMask(inst->getOperand(2), inst->getOperand(0));
                 bool negateOperand = false;
                 auto spvOp = getSpvAtomicOp(inst, negateOperand);
                 auto operand = inst->getOperand(1);
@@ -4024,6 +4020,25 @@ struct SPIRVEmitContext : public SourceEmitterBase, public SPIRVEmitSharedContex
                     auto negatedOperand = builder.emitNeg(inst->getDataType(), operand);
                     operand = negatedOperand;
                 }
+
+                SpvInst* memoryScope;
+                SpvInst* memorySemantics;
+                if (inst->getOperandCount() == 5)
+                {
+                    memoryScope =
+                        emitIntConstant(getIntVal(inst->getOperand(2)), builder.getUIntType());
+                    memorySemantics = emitIntConstant(
+                        getIntVal(inst->getOperand(3)) | getIntVal(inst->getOperand(4)),
+                        builder.getUIntType());
+                }
+                else
+                {
+                    memoryScope =
+                        emitIntConstant(IRIntegerValue{SpvScopeDevice}, builder.getUIntType());
+                    memorySemantics =
+                        emitMemorySemanticMask(inst->getOperand(2), inst->getOperand(0));
+                }
+
                 result = emitOpAtomicOp(
                     parent,
                     inst,
