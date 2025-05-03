@@ -16208,13 +16208,18 @@ vector<T, N> WaveClusteredRotate(vector<T, N> value, uint delta, constexpr uint 
     }
 }
 
+
 //
-// WaveMulti intrinsics. These are masked subgroup operations that operate on a 128-bit `uint4` mask.
-// These are non-prefixed variants of HLSL's WaveMultiPrefix* intrinsics.
+// WaveMulti intrinsics are subgroup operations that operate on a 128-bit `uint4` mask.
+// They are equivalent to SPIRV/GLSL's subgroup partitioned operation and HLSL's `WaveMultiPrefix*` operations.
+//
+// SPIRV/GLSL natively supports masked subgroup operations for both reductions and exclusive/inclusive scans.
+// HLSL only natively supports exclusive scans(prefix operations) on arithmetic operations. Inclusve scans
+// are emulated by performing an additional operation to the inclusive scan result. Reductions are not supported.
 //
 
 //
-// WaveMultiSum/WaveMultiProduct/WaveMultiPrefixSum/WaveMultiPrefixProduct
+// WaveMultiSum/WaveMultiProduct.
 //
 ${{{{
 struct WaveMultiSumProductEntry { const char* name; const char* spirvName; };
@@ -16231,6 +16236,8 @@ T WaveMulti$(opName.name)(T value, uint4 mask)
 {
     __target_switch
     {
+    case cuda:
+        return WaveMask$(opName.name)(mask.x, value);
     case glsl:
         __intrinsic_asm "subgroupPartitioned$(opName.spirvName)NV";
     case spirv:
@@ -16246,8 +16253,6 @@ T WaveMulti$(opName.name)(T value, uint4 mask)
             else
                 return spirv_asm { result:$$T = OpGroupNonUniformI$(opName.spirvName) Subgroup PartitionedReduceNV $value $mask };
         }
-    case cuda:
-        return WaveMask$(opName.name)(mask.x, value);
     }
 }
 
@@ -16260,6 +16265,8 @@ vector<T, N> WaveMulti$(opName.name)(vector<T, N> value, uint4 mask)
 {
     __target_switch
     {
+    case cuda:
+        return WaveMask$(opName.name)(mask.x, value);
     case glsl:
         __intrinsic_asm "subgroupPartitioned$(opName.spirvName)NV";
     case spirv:
@@ -16275,8 +16282,6 @@ vector<T, N> WaveMulti$(opName.name)(vector<T, N> value, uint4 mask)
             else
                 return spirv_asm { result:$$vector<T,N> = OpGroupNonUniformI$(opName.spirvName) Subgroup PartitionedReduceNV $value $mask };
         }
-    case cuda:
-        return WaveMask$(opName.name)(mask.x, value);
     }
 }
 
@@ -16300,6 +16305,7 @@ ${{{{
 } // WaveMultiSum/WaveMultiProduct.
 }}}}
 
+
 //
 // WaveMultiPrefixSumInclusive/WaveMultiPrefixProductInclusive.
 // WaveMultiPrefixSumExclusive/WaveMultiPrefixProductExclusive.
@@ -16308,33 +16314,31 @@ ${{{{
 ${{{{
 struct WaveMultiPrefixSumProductEntry
 {
-    const char* targetRequires;
-    const char* targetRequiresMatrixVariant;
     const char* name;
-
     const char* spirvName;
     const char* spirvGroupOperation;
     const char* glslName;
     const char* hlslName;
-
     const char* cudaName;
-    const char* cudaExtraOperations;
-    bool includeCudaForMatrixVariant;
+    const char* cudaExtraOperation;
+
+    // Inclusive operations are not implemented by the CUDA prelude functions.
+    // They are implemented here by calling the exclusive implementation and performing an additional operations
+    // with the current invocation's value. This works for all cases except for element-wise matrix multiplication.
+    bool cudaMatrixVariantSupport;
 };
 
 const WaveMultiPrefixSumProductEntry kWaveMultiPrefixSumProductNames[] =
 {
-    // WaveMultiPrefixSumInclusive/WaveMultiPrefixProductInclusive.
-    {"cuda_glsl_hlsl_spirv", "glsl_hlsl_spirv", "SumInclusive", "Add", "PartitionedInclusiveScanNV", "InclusiveAdd", "Sum($0, $1) + $0", "Sum", "+ value", false},
-    {"cuda_glsl_hlsl_spirv", "glsl_hlsl_spirv", "ProductInclusive", "Mul", "PartitionedInclusiveScanNV", "InclusiveMul", "Product($0, $1) * $0", "Product", "* value", false},
+    // name               spirvName  spirvGroupOperation         glslName        hlslName                         cudaName     cudaExtraOperation  cudaMatrixVariantSupport
+    { "SumInclusive",     "Add",     "PartitionedInclusiveScanNV", "InclusiveAdd", "Sum($0, $1) + $0",              "Sum",       "+ value",           false },
+    { "ProductInclusive", "Mul",     "PartitionedInclusiveScanNV", "InclusiveMul", "Product($0, $1) * $0",          "Product",   "* value",           false },
+    { "SumExclusive",     "Add",     "PartitionedExclusiveScanNV", "ExclusiveAdd", "Sum($0, $1)",                   "Sum",       "",                  true  },
+    { "ProductExclusive", "Mul",     "PartitionedExclusiveScanNV", "ExclusiveMul", "Product($0, $1)",               "Product",   "",                  true  },
 
-    // WaveMultiPrefixSumExclusive/WaveMultiPrefixProductExclusive.
-    {"cuda_glsl_hlsl_spirv", "cuda_glsl_hlsl_spirv", "SumExclusive", "Add", "PartitionedExclusiveScanNV", "ExclusiveAdd", "Sum($0, $1)", "Sum", "", true},
-    {"cuda_glsl_hlsl_spirv", "cuda_glsl_hlsl_spirv", "ProductExclusive", "Mul", "PartitionedExclusiveScanNV", "ExclusiveMul", "Product($0, $1)", "Product", "", true},
-
-    // WaveMultiPrefixSum/WaveMultiPrefixProduct. These are HLSL SM 6.5 intrinsics and are equal to the exclusive variants.
-    {"cuda_glsl_hlsl_spirv", "cuda_glsl_hlsl_spirv", "Sum", "Add", "PartitionedExclusiveScanNV", "ExclusiveAdd", "Sum($0, $1)", "Sum", "", true},
-    {"cuda_glsl_hlsl_spirv", "cuda_glsl_hlsl_spirv", "Product", "Mul", "PartitionedExclusiveScanNV", "ExclusiveMul", "Product($0, $1)", "Product", "", true},
+    // These are HLSL SM 6.5 intrinsics and are equal to the exclusive variants.
+    { "Sum",              "Add",     "PartitionedExclusiveScanNV", "ExclusiveAdd", "Sum($0, $1)",                   "Sum",       "",                  true  },
+    { "Product",          "Mul",     "PartitionedExclusiveScanNV", "ExclusiveMul", "Product($0, $1)",               "Product",   "",                  true  },
 };
 
 for (auto opName : kWaveMultiPrefixSumProductNames) {
@@ -16344,13 +16348,13 @@ __generic<T : __BuiltinArithmeticType>
 __glsl_extension(GL_NV_shader_subgroup_partitioned)
 __spirv_version(1.3)
 [ForceInline]
-[require($(opName.targetRequires), subgroup_partitioned)]
+[require(cuda_glsl_hlsl_spirv, subgroup_partitioned)]
 T WaveMultiPrefix$(opName.name)(T value, uint4 mask)
 {
     __target_switch
     {
     case cuda:
-        return WaveMaskPrefix$(opName.cudaName)(mask.x, value) $(opName.cudaExtraOperations);
+        return WaveMaskPrefix$(opName.cudaName)(mask.x, value) $(opName.cudaExtraOperation);
     case glsl:
         __intrinsic_asm "subgroupPartitioned$(opName.glslName)NV";
     case hlsl:
@@ -16375,13 +16379,13 @@ __generic<T : __BuiltinArithmeticType, let N : int>
 __glsl_extension(GL_NV_shader_subgroup_partitioned)
 __spirv_version(1.3)
 [ForceInline]
-[require($(opName.targetRequires), subgroup_partitioned)]
+[require(cuda_glsl_hlsl_spirv, subgroup_partitioned)]
 vector<T, N> WaveMultiPrefix$(opName.name)(vector<T, N> value, uint4 mask)
 {
     __target_switch
     {
     case cuda:
-        return WaveMaskPrefix$(opName.cudaName)(mask.x, value) $(opName.cudaExtraOperations);
+        return WaveMaskPrefix$(opName.cudaName)(mask.x, value) $(opName.cudaExtraOperation);
     case glsl:
         __intrinsic_asm "subgroupPartitioned$(opName.glslName)NV";
     case hlsl:
@@ -16403,14 +16407,14 @@ vector<T, N> WaveMultiPrefix$(opName.name)(vector<T, N> value, uint4 mask)
 }
 
 __generic<T : __BuiltinArithmeticType, let N : int, let M : int>
-[require($(opName.targetRequiresMatrixVariant), subgroup_partitioned)]
+[require(cuda_glsl_hlsl_spirv, subgroup_partitioned)]
 matrix<T,N,M> WaveMultiPrefix$(opName.name)(matrix<T,N,M> value, uint4 mask)
 {
     __target_switch
     {
-    ${{{{ if(opName.includeCudaForMatrixVariant) { }}}}
+    ${{{{ if(opName.cudaMatrixVariantSupport) { }}}}
     case cuda:
-        return WaveMaskPrefix$(opName.cudaName)(mask.x, value) $(opName.cudaExtraOperations);
+        return WaveMaskPrefix$(opName.cudaName)(mask.x, value) $(opName.cudaExtraOperation);
     ${{{{ } }}}}
     default:
         matrix<T, N, M> result;
@@ -16426,6 +16430,7 @@ ${{{{
 // WaveMultiPrefixSumExclusive/WaveMultiPrefixProductExclusive.
 // WaveMultiPrefixSum/WaveMultiPrefixProduct.
 }}}}
+
 
 //
 // WaveMultiMin/WaveMultiMax.
@@ -16445,6 +16450,8 @@ T WaveMulti$(opName.name)(T value, uint4 mask)
 {
     __target_switch
     {
+    case cuda:
+        return WaveMask$(opName.name)(mask.x, value);
     case glsl:
         __intrinsic_asm "subgroupPartitioned$(opName.name)NV";
     case spirv:
@@ -16462,8 +16469,6 @@ T WaveMulti$(opName.name)(T value, uint4 mask)
             else
                 return spirv_asm { result:$$T = OpGroupNonUniformS$(opName.name) Subgroup PartitionedReduceNV $value $mask };
         }
-    case cuda:
-        return WaveMask$(opName.name)(mask.x, value);
     }
 }
 
@@ -16535,10 +16540,11 @@ struct WaveMultiPrefixMinMaxEntry
 
 const WaveMultiPrefixMinMaxEntry kWaveMultiPrefixMinMaxNames[] =
 {
-    {"PrefixMinInclusive", "Min", "PartitionedInclusiveScanNV", "InclusiveMin"},
-    {"PrefixMaxInclusive", "Max", "PartitionedInclusiveScanNV", "InclusiveMax"},
-    {"PrefixMinExclusive", "Min", "PartitionedExclusiveScanNV", "ExclusiveMin"},
-    {"PrefixMaxExclusive", "Max", "PartitionedExclusiveScanNV", "ExclusiveMax"},
+    // name                 spirvName  spirvGroupOperation              glslName
+    { "PrefixMinInclusive", "Min",     "PartitionedInclusiveScanNV",    "InclusiveMin" },
+    { "PrefixMaxInclusive", "Max",     "PartitionedInclusiveScanNV",    "InclusiveMax" },
+    { "PrefixMinExclusive", "Min",     "PartitionedExclusiveScanNV",    "ExclusiveMin" },
+    { "PrefixMaxExclusive", "Max",     "PartitionedExclusiveScanNV",    "ExclusiveMax" },
 };
 
 for (auto opName : kWaveMultiPrefixMinMaxNames) {
@@ -16612,6 +16618,7 @@ matrix<T, N, M> WaveMulti$(opName.name)(matrix<T, N, M> value, uint4 mask)
         result[i] = WaveMulti$(opName.name)(value[i], mask);
     return result;
 }
+
 ${{{{
 }
 // WaveMultiPrefixMinInclusive/WaveMultiPrefixMaxInclusive.
@@ -16637,6 +16644,8 @@ T WaveMultiBit$(opName.name)(T value, uint4 mask)
 {
     __target_switch
     {
+    case cuda:
+        return WaveMaskBit$(opName.name)(mask.x, value);
     case glsl:
         __intrinsic_asm "subgroupPartitioned$(opName.name)NV";
     case spirv:
@@ -16646,8 +16655,6 @@ T WaveMultiBit$(opName.name)(T value, uint4 mask)
             OpCapability GroupNonUniformPartitionedNV;
             result:$$T = OpGroupNonUniformBitwise$(opName.name) Subgroup PartitionedReduceNV $value $mask;
         };
-    case cuda:
-        return WaveMaskBit$(opName.name)(mask.x, value);
     }
 }
 
@@ -16660,6 +16667,8 @@ vector<T, N> WaveMultiBit$(opName.name)(vector<T, N> value, uint4 mask)
 {
     __target_switch
     {
+    case cuda:
+        return WaveMaskBit$(opName.name)(mask.x, value);
     case glsl:
         __intrinsic_asm "subgroupPartitioned$(opName.name)NV";
     case spirv:
@@ -16669,8 +16678,6 @@ vector<T, N> WaveMultiBit$(opName.name)(vector<T, N> value, uint4 mask)
             OpCapability GroupNonUniformPartitionedNV;
             result:$$vector<T,N> = OpGroupNonUniformBitwise$(opName.name) Subgroup PartitionedReduceNV $value $mask;
         };
-    case cuda:
-        return WaveMaskBit$(opName.name)(mask.x, value);
     }
 }
 
@@ -16695,6 +16702,7 @@ ${{{{
 } // WaveMultiBitAnd/WaveMultiBitOr/WaveMultiBitXor.
 }}}}
 
+
 //
 // WaveMultiPrefixBitAndInclusive/WaveMultiPrefixBitOrInclusive/WaveMultiBitXorInclusive.
 // WaveMultiPrefixBitAndExclusive/WaveMultiPrefixBitOrExclusive/WaveMultiBitXorExclusive.
@@ -16709,23 +16717,24 @@ struct WaveMultiPrefixBitwiseEntry
     const char* glslName;
     const char* hlslName;
     const char* cudaExtraOperation;
+
+    bool cudaMatrixVariantSupport;
 };
 
 const WaveMultiPrefixBitwiseEntry kWaveMultiPrefixBitwiseNames[] =
 {
-    {"AndInclusive", "And", "PartitionedInclusiveScanNV", "InclusiveAnd", "And($0, $1) & $0", "& value"},
-    {"OrInclusive", "Or", "PartitionedInclusiveScanNV", "InclusiveOr", "Or($0, $1) | $0", "| value"},
-    {"XorInclusive", "Xor", "PartitionedInclusiveScanNV", "InclusiveXor", "Xor($0, $1) ^ $0", "^ value"},
+    // name           spirvName  spirvGroupOperation         glslName       hlslName                   cudaExtraOperation  cudaMatrixVariantSupport
+    { "AndInclusive", "And",     "PartitionedInclusiveScanNV", "InclusiveAnd", "And($0, $1) & $0",      "& value",           false },
+    { "OrInclusive",  "Or",      "PartitionedInclusiveScanNV", "InclusiveOr",  "Or($0, $1) | $0",       "| value",           false },
+    { "XorInclusive", "Xor",     "PartitionedInclusiveScanNV", "InclusiveXor", "Xor($0, $1) ^ $0",      "^ value",           false },
+    { "AndExclusive", "And",     "PartitionedExclusiveScanNV", "ExclusiveAnd", "And",                  "",                  true  },
+    { "OrExclusive",  "Or",      "PartitionedExclusiveScanNV", "ExclusiveOr",  "Or",                   "",                  true  },
+    { "XorExclusive", "Xor",     "PartitionedExclusiveScanNV", "ExclusiveXor", "Xor",                  "",                  true  },
 
-    {"AndExclusive", "And", "PartitionedExclusiveScanNV", "ExclusiveAnd", "And", ""},
-    {"OrExclusive", "Or", "PartitionedExclusiveScanNV", "ExclusiveOr", "Or", ""},
-    {"XorExclusive", "Xor", "PartitionedExclusiveScanNV", "ExclusiveXor", "Xor", ""},
-
-    // WaveMultiPrefixBitAnd/WaveMultiPrefixBitOr/WaveMultiBitXor.
     // These are HLSL SM 6.5 intrinsics and are equal to the exclusive variants.
-    {"And", "And", "PartitionedExclusiveScanNV", "ExclusiveAnd", "And", ""},
-    {"Or", "Or", "PartitionedExclusiveScanNV", "ExclusiveOr", "Or", ""},
-    {"Xor", "Xor", "PartitionedExclusiveScanNV", "ExclusiveXor", "Xor", ""},
+    { "And",          "And",     "PartitionedExclusiveScanNV", "ExclusiveAnd", "And",                  "",                  true  },
+    { "Or",           "Or",      "PartitionedExclusiveScanNV", "ExclusiveOr",  "Or",                   "",                  true  },
+    { "Xor",          "Xor",     "PartitionedExclusiveScanNV", "ExclusiveXor", "Xor",                  "",                  true  },
 };
 
 for (auto opName : kWaveMultiPrefixBitwiseNames) {
@@ -16742,10 +16751,10 @@ T WaveMultiPrefixBit$(opName.name)(T value, uint4 mask)
     {
     case cuda:
         return WaveMaskPrefixBit$(opName.spirvName)(mask.x, value) $(opName.cudaExtraOperation);
-    case hlsl:
-        __intrinsic_asm "WaveMultiPrefixBit$(opName.hlslName)";
     case glsl:
         __intrinsic_asm "subgroupPartitioned$(opName.glslName)NV";
+    case hlsl:
+        __intrinsic_asm "WaveMultiPrefixBit$(opName.hlslName)";
     case spirv:
         return spirv_asm
         {
@@ -16767,10 +16776,10 @@ vector<T, N> WaveMultiPrefixBit$(opName.name)(vector<T, N> value, uint4 mask)
     {
     case cuda:
         return WaveMaskPrefixBit$(opName.spirvName)(mask.x, value) $(opName.cudaExtraOperation);
-    case hlsl:
-        __intrinsic_asm "WaveMultiPrefixBit$(opName.hlslName)";
     case glsl:
         __intrinsic_asm "subgroupPartitioned$(opName.glslName)NV";
+    case hlsl:
+        __intrinsic_asm "WaveMultiPrefixBit$(opName.hlslName)";
     case spirv:
         return spirv_asm
         {
@@ -16787,10 +16796,14 @@ matrix<T, N, M> WaveMultiPrefixBit$(opName.name)(matrix<T, N, M> value, uint4 ma
 {
     __target_switch
     {
+${{{{
+    if (opName.cudaMatrixVariantSupport) {
+}}}}
     case cuda:
-        // XXX TODO: disable matrix inclusive variants for CUDA?
-        //return WaveMaskPrefixBit$(opName.spirvName)(mask.x, value) $(opName.cudaExtraOperation);
-        return WaveMaskPrefixBit$(opName.spirvName)(mask.x, value) ;
+        return WaveMaskPrefixBit$(opName.spirvName)(mask.x, value);
+${{{{
+    }
+}}}}
     default:
         matrix<T,N,M> result;
         [ForceUnroll]
