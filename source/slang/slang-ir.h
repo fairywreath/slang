@@ -1045,6 +1045,7 @@ struct IntInfo
 {
     Int width;
     bool isSigned;
+    IROp oppositeSignType;
     bool operator==(const IntInfo& i) const { return width == i.width && isSigned == i.isSigned; }
 };
 

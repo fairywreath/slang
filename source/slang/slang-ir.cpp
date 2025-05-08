@@ -7762,21 +7762,21 @@ IntInfo getIntTypeInfo(const IRType* intType)
     switch (intType->getOp())
     {
     case kIROp_UInt8Type:
-        return {8, false};
+        return {8, false, kIROp_Int8Type};
     case kIROp_UInt16Type:
-        return {16, false};
+        return {16, false, kIROp_Int16Type};
     case kIROp_UIntType:
-        return {32, false};
+        return {32, false, kIROp_IntType};
     case kIROp_UInt64Type:
-        return {64, false};
+        return {64, false, kIROp_Int64Type};
     case kIROp_Int8Type:
-        return {8, true};
+        return {8, true, kIROp_UInt8Type};
     case kIROp_Int16Type:
-        return {16, true};
+        return {16, true, kIROp_UInt16Type};
     case kIROp_IntType:
-        return {32, true};
+        return {32, true, kIROp_UIntType};
     case kIROp_Int64Type:
-        return {64, true};
+        return {64, true, kIROp_UInt64Type};
 
     case kIROp_IntPtrType:  // target platform dependent
     case kIROp_UIntPtrType: // target platform dependent
