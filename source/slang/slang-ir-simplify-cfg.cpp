@@ -484,7 +484,7 @@ static bool isTrivialSwitch(IRSwitch* switchBranch)
     return true;
 }
 
-static bool trySimplifyIfElse(IRBuilder& builder, IRIfElse* ifElseInst)
+static bool trySimplifyIfElse(IRBuilder& builder, IRIfElse* ifElseInst, bool removeTrivialBranch)
 {
     bool isTrueBranchTrivial = false;
     bool isFalseBranchTrivial = false;
@@ -517,9 +517,13 @@ static bool trySimplifyIfElse(IRBuilder& builder, IRIfElse* ifElseInst)
         // Otherwise, we can try to remove at least remove one of the trivial branches
         // Remove either the true or false block if it jumps to the after block
         // with no parameters.
+        //
+        // SPIRV however requires the merge block to be explicitly different with the true and false
+        // blocks, and this is case we should not remove one of the trivial branches. This case is
+        // detected by checking the CFG simplication options set by the caller.
 
         const auto afterBlock = ifElseInst->getAfterBlock();
-        if (!afterBlock->getFirstParam())
+        if (!afterBlock->getFirstParam() && removeTrivialBranch)
         {
             const auto trueBlock = ifElseInst->getTrueBlock();
             const auto falseBlock = ifElseInst->getFalseBlock();
@@ -898,7 +902,7 @@ static bool processFunc(IRGlobalValueWithCode* func, CFGSimplificationOptions op
                 }
                 else if (auto condBranch = as<IRIfElse>(block->getTerminator()))
                 {
-                    if (trySimplifyIfElse(builder, condBranch))
+                    if (trySimplifyIfElse(builder, condBranch, options.removeTrivialIfElseBranches))
                     {
                         simplificationContext = CFGSimplificationContext();
                         changed = true;

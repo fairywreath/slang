@@ -6301,6 +6301,8 @@ struct StmtLoweringVisitor : StmtVisitor<StmtLoweringVisitor>
         auto bodyLabel = createBlock();
         auto breakLabel = createBlock();
 
+        auto conditionMergeLabel = createBlock();
+
         // A `continue` inside a `while` loop always
         // jumps to the head of hte loop.
         auto continueLabel = loopHead;
@@ -6328,7 +6330,8 @@ struct StmtLoweringVisitor : StmtVisitor<StmtLoweringVisitor>
             auto irCondition = getSimpleVal(context, lowerRValueExpr(context, condExpr));
 
             // Now we want to `break` if the loop condition is false.
-            builder->emitLoopTest(irCondition, bodyLabel, breakLabel);
+            // builder->emitLoopTest(irCondition, bodyLabel, breakLabel);
+            builder->emitIfElse(irCondition, bodyLabel, conditionMergeLabel, conditionMergeLabel);
         }
 
         // Emit the body of the loop
@@ -6339,6 +6342,8 @@ struct StmtLoweringVisitor : StmtVisitor<StmtLoweringVisitor>
 
         // At the end of the body we need to jump back to the top.
         emitBranchIfNeeded(loopHead);
+
+        insertBlock(conditionMergeLabel);
 
         // Finally we insert the label that a `break` will jump to
         insertBlock(breakLabel);

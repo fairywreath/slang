@@ -12,8 +12,16 @@ struct CFGSimplificationOptions
 {
     bool removeTrivialSingleIterationLoops = true;
     bool removeSideEffectFreeLoops = true;
+
+    // SPIRV's `OpBranchConditional` requires the merge block to be different than the true/false
+    // blocks. Trivial true/false blocks should not be removed to conform to this.
+    bool removeTrivialIfElseBranches = true;
+
     static CFGSimplificationOptions getDefault() { return CFGSimplificationOptions(); }
-    static CFGSimplificationOptions getFast() { return CFGSimplificationOptions{false, false}; }
+    static CFGSimplificationOptions getFast()
+    {
+        return CFGSimplificationOptions{false, false, true};
+    }
 };
 
 bool isTrivialSingleIterationLoop(

@@ -205,7 +205,7 @@ static void dumpIRIfEnabled(
     IRModule* irModule,
     char const* label = nullptr)
 {
-    if (codeGenContext->shouldDumpIR())
+    // if (codeGenContext->shouldDumpIR())
     {
         DiagnosticSinkWriter writer(codeGenContext->getSink());
         // FILE* f = nullptr;
@@ -1896,7 +1896,7 @@ Result linkAndOptimizeIR(
     // it after all of the optimization passes are complete. This should
     // reflect the IR that code is generated from as closely as possible.
     //
-#if 0
+#if 1
     dumpIRIfEnabled(codeGenContext, irModule, "OPTIMIZED");
 #endif
     validateIRModuleIfEnabled(codeGenContext, irModule);

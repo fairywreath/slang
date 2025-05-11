@@ -1320,7 +1320,7 @@ struct SPIRVLegalizationContext : public SourceEmitterBase
 
     void processIfElse(IRIfElse* inst)
     {
-        duplicateMergeBlockIfNeeded(&inst->afterBlock);
+        // duplicateMergeBlockIfNeeded(&inst->afterBlock);
 
         // SPIRV does not allow using merge block directly as true/false block,
         // so we need to create an intermediate block if this is the case.
@@ -2187,6 +2187,7 @@ void simplifyIRForSpirvLegalization(TargetProgram* target, DiagnosticSink* sink,
                 CFGSimplificationOptions options;
                 options.removeTrivialSingleIterationLoops = true;
                 options.removeSideEffectFreeLoops = false;
+                // options.removeTrivialIfElseBranches = false;
                 funcChanged |= simplifyCFG(func, options);
                 eliminateDeadCode(func);
             }

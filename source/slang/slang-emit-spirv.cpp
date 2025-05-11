@@ -3749,9 +3749,14 @@ struct SPIRVEmitContext : public SourceEmitterBase, public SPIRVEmitSharedContex
                 auto targetBlock = as<IRUnconditionalBranch>(inst)->getTargetBlock();
                 IRInst* loopInst = nullptr;
                 if (isLoopTargetBlock(targetBlock, loopInst))
+                {
+                    printf("FW loop header target block id: %d\n", getIRInstSpvID(loopInst));
                     return emitOpBranch(parent, inst, getIRInstSpvID(loopInst));
+                }
+
                 // Otherwise, emit a normal branch inst into the target block.
                 result = emitOpBranch(parent, inst, getIRInstSpvID(targetBlock));
+                printf("FW unBr target block id: %d\n", getIRInstSpvID(targetBlock));
                 break;
             }
         case kIROp_loop:
@@ -3767,6 +3772,8 @@ struct SPIRVEmitContext : public SourceEmitterBase, public SPIRVEmitSharedContex
                 // after everything else to ensure Phi instructions (which come
                 // from the actual loop target block) are emitted first.
                 emitOpBranch(parent, nullptr, blockId);
+
+                printf("FW op loop block id: %d\n", blockId);
 
                 result = block;
                 break;
@@ -8421,12 +8428,12 @@ SlangResult emitSPIRVFromIR(
 
     auto sink = codeGenContext->getSink();
 
-#if 0
+#if 1
     {
         DiagnosticSinkWriter writer(codeGenContext->getSink());
         dumpIR(
             irModule,
-            { IRDumpOptions::Mode::Simplified, 0 },
+            {IRDumpOptions::Mode::Simplified, 0},
             "BEFORE SPIR-V LEGALIZE",
             codeGenContext->getSourceManager(),
             &writer);
@@ -8436,12 +8443,12 @@ SlangResult emitSPIRVFromIR(
     SPIRVEmitContext context(irModule, codeGenContext->getTargetProgram(), sink);
     legalizeIRForSPIRV(&context, irModule, irEntryPoints, codeGenContext);
 
-#if 0
+#if 1
     {
         DiagnosticSinkWriter writer(codeGenContext->getSink());
         dumpIR(
             irModule,
-            { IRDumpOptions::Mode::Simplified, 0 },
+            {IRDumpOptions::Mode::Simplified, 0},
             "BEFORE SPIR-V EMIT",
             codeGenContext->getSourceManager(),
             &writer);
