@@ -101,6 +101,36 @@ enum IRMemoryOrder
     kIRMemoryOrder_SeqCst = 4,
 };
 
+enum IRGLSLScope : int32_t
+{
+    kIRGLSLScope_Device = 1,
+    kIRGLSLScope_Workgroup = 2,
+    kIRGLSLScope_Subgroup = 3,
+    kIRGLSLScope_Invocation = 4,
+    kIRGLSLScope_QueueFamily = 5,
+};
+
+enum IRGLSLSemantics : int32_t
+{
+    kIRGLSLSemantics_Relaxed = 0x0,
+    kIRGLSLSemantics_Acquire = 0x2,
+    kIRGLSLSemantics_Release = 0x4,
+    kIRGLSLSemantics_AcquireRelease = 0x8,
+    kIRGLSLSemantics_MakeAvailable = 0x2000,
+    kIRGLSLSemantics_MakeVisible = 0x4000,
+    kIRGLSLSemantics_Volatile = 0x8000,
+};
+
+enum IRGLSLStorageSemantics : int32_t
+{
+    kIRGLSLStorageSemantics_None = 0x0,
+    kIRGLSLStorageSemantics_Buffer = 0x40,
+    kIRGLSLStorageSemantics_Shared = 0x100,
+    kIRGLSLStorageSemantics_Image = 0x800,
+    kIRGLSLStorageSemantics_Output = 0x1000,
+};
+
+
 inline int32_t operator&(const IROpMask m, const IROp o)
 {
     return int32_t{m} & int32_t{o};

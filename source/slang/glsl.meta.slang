@@ -9844,3 +9844,63 @@ public void debugPrintfEXT<each T>(NativeString format, expand each T args)
 {
     printf(format, args);
 }
+
+//
+// GL_KHR_memory_scope_semantics
+//
+
+public static const int gl_ScopeDevice      = 1;
+public static const int gl_ScopeWorkgroup   = 2;
+public static const int gl_ScopeSubgroup    = 3;
+public static const int gl_ScopeInvocation  = 4;
+public static const int gl_ScopeQueueFamily = 5;
+
+public static const int gl_SemanticsRelaxed         = 0x0;
+public static const int gl_SemanticsAcquire         = 0x2;
+public static const int gl_SemanticsRelease         = 0x4;
+public static const int gl_SemanticsAcquireRelease  = 0x8;
+public static const int gl_SemanticsMakeAvailable   = 0x2000;
+public static const int gl_SemanticsMakeVisible     = 0x4000;
+public static const int gl_SemanticsVolatile        = 0x8000;
+
+public static const int gl_StorageSemanticsNone     = 0x0;
+public static const int gl_StorageSemanticsBuffer   = 0x40;
+public static const int gl_StorageSemanticsShared   = 0x100;
+public static const int gl_StorageSemanticsImage    = 0x800;
+public static const int gl_StorageSemanticsOutput   = 0x1000;
+
+__glsl_extension(GL_KHR_memory_scope_semantics)
+[ForceInline]
+[require(glsl_spirv, memorybarrier)]
+public void controlBarrier(constexpr int execution, constexpr int memory, constexpr int storage, constexpr int sem)
+{
+    __target_switch
+    {
+    case glsl:
+        __intrinsic_asm "controlBarrier";
+    case spirv:
+        constexpr int semantics = storage | sem;
+        spirv_asm
+        {
+            OpControlBarrier $execution $memory $semantics;
+        };
+    }
+}
+
+__glsl_extension(GL_KHR_memory_scope_semantics)
+[ForceInline]
+[require(glsl_spirv, memorybarrier)]
+void memoryBarrier(int memory, int storage, int sem)
+{
+    __target_switch
+    {
+    case glsl:
+        __intrinsic_asm "memoryBarrier";
+    case spirv:
+        constexpr int semantics = storage | sem;
+        spirv_asm
+        {
+            OpMemoryBarrier $memory $semantics;
+        };
+    }
+}
